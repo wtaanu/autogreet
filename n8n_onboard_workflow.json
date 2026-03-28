@@ -1,0 +1,143 @@
+{
+  "name": "AutoGreet — New Client Onboarding Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-client",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "onboard-webhook",
+      "name": "Webhook — New Client Onboarding",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "new-client"
+    },
+    {
+      "parameters": {
+        "authentication": "credentials",
+        "from": "={{ $env.TWILIO_WHATSAPP_NUMBER }}",
+        "to": "=whatsapp:+919250257509",
+        "message": "=🎉 *NEW CLIENT ONBOARDED!*\n\n*Business:* {{ $json.business }}\n*Owner:* {{ $json.owner }}\n*Type:* {{ $json.type }}\n*City:* {{ $json.city }}\n*Plan:* {{ $json.plan | upper }}\n*Phone:* +91 {{ $json.phone }}\n*Email:* {{ $json.email }}\n\n📋 *Action needed:*\n1. WhatsApp them within 2 hours\n2. Get Google Business Profile access\n3. Set up n8n campaign\n4. Complete setup within 48hrs\n\n💰 Payment: PENDING — follow up!\n\n_AutoGreet Admin Alert_"
+      },
+      "id": "notify-admin",
+      "name": "Twilio — Alert Anuragini on WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [460, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-creds",
+          "name": "Twilio — AutoGreet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "credentials",
+        "from": "={{ $env.TWILIO_WHATSAPP_NUMBER }}",
+        "to": "=whatsapp:+91{{ $json.phone }}",
+        "message": "=Hi {{ $json.owner }}! 👋\n\nWelcome to *AutoGreet* — thank you for signing up! 🎉\n\nYour onboarding form has been received for *{{ $json.business }}*.\n\n✅ *What happens next:*\n1. I'll personally WhatsApp you within 2 hours to confirm your order\n2. We'll complete your full setup within 48 hours\n3. You'll get a video walkthrough before we hand it over\n4. First reviews start arriving within 72 hours of going live!\n\n💳 If you haven't completed payment, please do so here:\n→ autogreet.in/portal.html\n\n📸 Follow us: instagram.com/anutechaitools\n\nExcited to help *{{ $json.business }}* grow! 🚀\n\n— Anuragini | AutoGreet\n+91 92502 57509"
+      },
+      "id": "welcome-client",
+      "name": "Twilio — Send Welcome WhatsApp to Client",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [460, 420],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-creds",
+          "name": "Twilio — AutoGreet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Clients",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp":      "={{ new Date().toISOString() }}",
+            "owner":          "={{ $json.owner }}",
+            "business":       "={{ $json.business }}",
+            "type":           "={{ $json.type }}",
+            "city":           "={{ $json.city }}",
+            "phone":          "={{ $json.phone }}",
+            "email":          "={{ $json.email }}",
+            "plan":           "={{ $json.plan }}",
+            "payment_status": "pending",
+            "status":         "new",
+            "gmaps_url":      "={{ $json.gmaps }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-client-sheets",
+      "name": "Google Sheets — Add to Clients Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [700, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-creds",
+          "name": "Google Sheets — AutoGreet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"received\", \"message\": \"Welcome to AutoGreet! Check your WhatsApp.\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "onboard-success",
+      "name": "Respond — 200 Welcome",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — New Client Onboarding": {
+      "main": [
+        [
+          { "node": "Twilio — Alert Anuragini on WhatsApp", "type": "main", "index": 0 },
+          { "node": "Twilio — Send Welcome WhatsApp to Client", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Twilio — Alert Anuragini on WhatsApp": {
+      "main": [
+        [{ "node": "Google Sheets — Add to Clients Sheet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Twilio — Send Welcome WhatsApp to Client": {
+      "main": [
+        [{ "node": "Google Sheets — Add to Clients Sheet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Google Sheets — Add to Clients Sheet": {
+      "main": [
+        [{ "node": "Respond — 200 Welcome", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "tags": [{ "name": "AutoGreet" }],
+  "versionId": "1"
+}

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /portal.html
+Disallow: /admin.html
+Disallow: /api/
+
+Sitemap: https://autogreet.in/sitemap.xml
+
+# AutoGreet — autogreet.in

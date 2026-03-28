@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AutoGreet — Client Portal</title>
+<link rel="icon" type="image/svg+xml" href="../../autogreet-icon.svg"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --navy:#0d1b2a;--navy2:#1a2d42;--navy3:#243651;
+  --green:#25d366;--green2:#1da851;
+  --gold:#f5c842;--gold2:#d4a800;
+  --white:#ffffff;--gray:#8a9bb0;--light:#e8edf3;
+  --red:#e74c3c;--blue:#3498db;
+  --radius:12px;--shadow:0 4px 20px rgba(0,0,0,.25);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--navy);color:var(--white);min-height:100vh;}
+
+/* ── LOGIN ── */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);}
+.login-card{background:var(--navy2);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:48px 40px;width:420px;max-width:95vw;box-shadow:var(--shadow);}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center;}
+.login-logo img{width:44px;height:44px;}
+.login-logo span{font-size:1.6rem;font-weight:800;color:var(--white);}
+.login-logo small{color:var(--green);font-size:.75rem;display:block;font-weight:500;}
+.login-card h2{font-size:1.4rem;font-weight:700;text-align:center;margin-bottom:6px;}
+.login-card p{color:var(--gray);text-align:center;font-size:.9rem;margin-bottom:28px;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;font-size:.85rem;color:var(--gray);margin-bottom:6px;font-weight:500;}
+.form-group input{width:100%;background:var(--navy3);border:1.5px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:12px 16px;color:var(--white);font-size:.95rem;outline:none;transition:.2s;}
+.form-group input:focus{border-color:var(--green);}
+.login-btn{width:100%;background:var(--green);color:var(--navy);border:none;border-radius:var(--radius);padding:14px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:8px;}
+.login-btn:hover{background:var(--green2);}
+.login-err{background:rgba(231,76,60,.15);border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:.85rem;color:#ff6b6b;margin-top:12px;display:none;}
+.login-help{text-align:center;margin-top:20px;font-size:.83rem;color:var(--gray);}
+.login-help a{color:var(--green);text-decoration:none;}
+
+/* ── PORTAL LAYOUT ── */
+#portalApp{display:none;}
+.portal-layout{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{width:240px;background:var(--navy2);border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sidebar-brand{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.07);}
+.sidebar-brand .brand-row{display:flex;align-items:center;gap:10px;}
+.sidebar-brand img{width:36px;height:36px;}
+.sidebar-brand .brand-name{font-size:1.1rem;font-weight:800;}
+.sidebar-brand .plan-badge{display:inline-block;background:var(--gold);color:var(--navy);font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+.sidebar-nav{flex:1;padding:16px 0;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;color:var(--gray);font-size:.9rem;font-weight:500;transition:.15s;border-left:3px solid transparent;}
+.nav-item:hover{color:var(--white);background:rgba(255,255,255,.04);}
+.nav-item.active{color:var(--white);background:rgba(37,211,102,.08);border-left-color:var(--green);}
+.nav-item .nav-icon{font-size:1.1rem;width:20px;text-align:center;}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.07);}
+.logout-btn{width:100%;background:rgba(231,76,60,.15);color:#ff6b6b;border:1px solid rgba(231,76,60,.3);border-radius:8px;padding:10px;font-size:.85rem;cursor:pointer;transition:.2s;}
+.logout-btn:hover{background:rgba(231,76,60,.25);}
+
+/* Main content */
+.main-content{margin-left:240px;flex:1;padding:32px;overflow-x:hidden;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+.page-title{font-size:1.6rem;font-weight:800;margin-bottom:6px;}
+.page-sub{color:var(--gray);font-size:.9rem;margin-bottom:28px;}
+
+/* Stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--navy2);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);padding:20px;}
+.stat-label{font-size:.78rem;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.stat-value{font-size:1.9rem;font-weight:800;color:var(--white);}
+.stat-sub{font-size:.78rem;color:var(--gray);margin-top:4px;}
+.stat-card.green .stat-value{color:var(--green);}
+.stat-card.gold .stat-value{color:var(--gold);}
+.stat-card.blue .stat-value{color:var(--blue);}
+
+/* Cards */
+.card{background:var(--navy2);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);padding:24px;margin-bottom:20px;}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.card-2col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+
+/* Progress bar */
+.progress-wrap{margin-top:12px;}
+.progress-label{display:flex;justify-content:space-between;font-size:.8rem;color:var(--gray);margin-bottom:6px;}
+.progress-bar{height:8px;background:rgba(255,255,255,.08);border-radius:20px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:20px;transition:.5s;}
+
+/* Upload area */
+.upload-zone{border:2px dashed rgba(37,211,102,.4);border-radius:var(--radius);padding:36px;text-align:center;cursor:pointer;transition:.2s;position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--green);background:rgba(37,211,102,.04);}
+.upload-icon{font-size:2.5rem;margin-bottom:12px;}
+.upload-zone h3{font-size:1rem;font-weight:700;margin-bottom:6px;}
+.upload-zone p{font-size:.84rem;color:var(--gray);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.upload-actions{display:flex;gap:12px;margin-top:16px;justify-content:center;flex-wrap:wrap;}
+.btn{padding:10px 20px;border-radius:8px;font-size:.88rem;font-weight:600;cursor:pointer;border:none;transition:.2s;}
+.btn-green{background:var(--green);color:var(--navy);}
+.btn-green:hover{background:var(--green2);}
+.btn-outline{background:transparent;color:var(--white);border:1.5px solid rgba(255,255,255,.2);}
+.btn-outline:hover{border-color:var(--green);color:var(--green);}
+.btn-gold{background:var(--gold);color:var(--navy);}
+.btn-gold:hover{background:var(--gold2);}
+.btn-sm{padding:6px 14px;font-size:.8rem;}
+
+/* Preview table */
+.preview-table-wrap{overflow-x:auto;margin-top:16px;}
+table{width:100%;border-collapse:collapse;font-size:.84rem;}
+th{background:rgba(255,255,255,.05);color:var(--gray);font-weight:600;padding:10px 14px;text-align:left;font-size:.78rem;text-transform:uppercase;letter-spacing:.4px;}
+td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--white);}
+tr:hover td{background:rgba(255,255,255,.02);}
+
+/* Status badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.74rem;font-weight:600;}
+.badge-sent{background:rgba(37,211,102,.15);color:var(--green);}
+.badge-pending{background:rgba(245,200,66,.15);color:var(--gold);}
+.badge-failed{background:rgba(231,76,60,.15);color:#ff6b6b;}
+.badge-plan{background:rgba(52,152,219,.15);color:var(--blue);}
+.badge-paid{background:rgba(37,211,102,.15);color:var(--green);}
+
+/* Timeline / activity */
+.activity-list{display:flex;flex-direction:column;gap:12px;}
+.activity-item{display:flex;align-items:flex-start;gap:14px;padding:12px;background:rgba(255,255,255,.03);border-radius:8px;}
+.act-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.act-icon.green{background:rgba(37,211,102,.15);}
+.act-icon.gold{background:rgba(245,200,66,.15);}
+.act-icon.blue{background:rgba(52,152,219,.15);}
+.act-body{flex:1;}
+.act-text{font-size:.87rem;font-weight:500;}
+.act-time{font-size:.76rem;color:var(--gray);margin-top:2px;}
+
+/* Queue table */
+.queue-status{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.queue-tag{background:rgba(255,255,255,.07);border-radius:20px;padding:4px 12px;font-size:.78rem;color:var(--gray);}
+.queue-tag span{font-weight:700;color:var(--white);}
+
+/* Payment / transactions */
+.txn-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);align-items:center;}
+.txn-row:last-child{border-bottom:none;}
+.txn-ref{font-size:.84rem;font-weight:600;}
+.txn-desc{font-size:.78rem;color:var(--gray);}
+.txn-amount{font-size:1rem;font-weight:700;color:var(--green);}
+.txn-date{font-size:.78rem;color:var(--gray);}
+
+/* Info rows */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.info-item label{font-size:.75rem;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+.info-item p{font-size:.9rem;font-weight:500;margin-top:2px;}
+
+/* Toast */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--navy2);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 20px;font-size:.88rem;z-index:9999;transform:translateY(80px);opacity:0;transition:.3s;max-width:320px;box-shadow:var(--shadow);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:var(--green);}
+.toast.error{border-color:var(--red);}
+
+/* Whatsapp floating btn */
+.wa-float{position:fixed;bottom:28px;left:28px;background:var(--green);color:var(--navy);border:none;border-radius:50%;width:52px;height:52px;font-size:1.4rem;cursor:pointer;box-shadow:0 4px 16px rgba(37,211,102,.4);z-index:200;transition:.2s;}
+.wa-float:hover{transform:scale(1.1);}
+
+/* Responsive */
+@media(max-width:900px){
+  .sidebar{width:200px;}
+  .main-content{margin-left:200px;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .card-2col{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .sidebar{width:60px;}
+  .sidebar-brand,.nav-item span,.sidebar-footer .logout-btn span{display:none;}
+  .main-content{margin-left:60px;padding:16px;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+}
+
+/* Chart */
+.chart-wrap{position:relative;height:200px;}
+
+/* Send now form */
+.single-send-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;margin-bottom:20px;}
+.single-send-form .form-group{margin-bottom:0;}
+.single-send-form input{background:var(--navy3);border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;color:var(--white);font-size:.88rem;width:100%;outline:none;}
+.single-send-form input:focus{border-color:var(--green);}
+
+/* Alert banner */
+.alert-banner{background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);border-radius:10px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;margin-bottom:20px;}
+.alert-banner .alert-icon{font-size:1.2rem;flex-shrink:0;}
+.alert-banner p{font-size:.85rem;color:rgba(255,255,255,.8);line-height:1.5;}
+
+/* Payment pending */
+.pay-card{background:linear-gradient(135deg,var(--navy2),var(--navy3));border:2px solid var(--gold);border-radius:var(--radius);padding:28px;text-align:center;}
+.pay-card h3{font-size:1.2rem;font-weight:700;margin-bottom:8px;}
+.pay-card p{font-size:.88rem;color:var(--gray);margin-bottom:20px;}
+.pay-btn{display:inline-block;background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:14px 32px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.2s;}
+.pay-btn:hover{background:var(--gold2);}
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN SCREEN ════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="../../autogreet-icon.svg" alt="AutoGreet"/>
+      <div>
+        <span>AutoGreet</span>
+        <small>AI Review Automation</small>
+      </div>
+    </div>
+    <h2>Client Portal Login</h2>
+    <p>Access your review automation dashboard</p>
+
+    <div class="form-group">
+      <label>Email / Phone</label>
+      <input id="loginUser" type="text" placeholder="you@email.com or phone number" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="Your password" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">🔐 Login to Dashboard</button>
+    <div class="login-err" id="loginErr">Invalid credentials. Please check your email/phone and password.</div>
+    <p class="login-help">Need help? <a href="https://wa.me/919250257509?text=Hi+AutoGreet+team%2C+I+need+help+with+my+portal+login" target="_blank">WhatsApp support →</a></p>
+    <p class="login-help" style="margin-top:8px;">New client? <a href="onboard.html">Start onboarding →</a></p>
+  </div>
+</div>
+
+<!-- ════════ PORTAL APP ════════ -->
+<div id="portalApp">
+  <div class="portal-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-row">
+          <img src="../../autogreet-icon.svg" alt="AutoGreet"/>
+          <div>
+            <div class="brand-name">AutoGreet</div>
+          </div>
+        </div>
+        <div class="plan-badge" id="sidebarPlan">Starter</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-page="overview">
+          <span class="nav-icon">📊</span><span>Overview</span>
+        </div>
+        <div class="nav-item" data-page="send">
+          <span class="nav-icon">📨</span><span>Send Requests</span>
+        </div>
+        <div class="nav-item" data-page="upload">
+          <span class="nav-icon">📤</span><span>Bulk Upload</span>
+        </div>
+        <div class="nav-item" data-page="transactions">
+          <span class="nav-icon">💳</span><span>Payments</span>
+        </div>
+        <div class="nav-item" data-page="account">
+          <span class="nav-icon">🏪</span><span>My Business</span>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="doLogout()">🚪 <span>Logout</span></button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+
+      <!-- ── OVERVIEW ── -->
+      <section class="page-section active" id="page-overview">
+        <div class="page-title">Welcome back, <span id="ownerName">—</span> 👋</div>
+        <div class="page-sub" id="bizNameSub">Loading your business dashboard…</div>
+
+        <!-- Payment pending alert (shown if not paid) -->
+        <div class="alert-banner" id="payAlert" style="display:none;">
+          <span class="alert-icon">⚠️</span>
+          <p>Your plan payment is pending. Complete payment to activate automated review requests. <a href="#" onclick="showPage('transactions')" style="color:var(--gold);">Go to Payments →</a></p>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card green">
+            <div class="stat-label">Requests Sent</div>
+            <div class="stat-value" id="statSent">0</div>
+            <div class="stat-sub">Total WhatsApp messages sent</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-label">Reviews Received</div>
+            <div class="stat-value" id="statReviews">0</div>
+            <div class="stat-sub">New Google reviews generated</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Rating</div>
+            <div class="stat-value" id="statRating">—</div>
+            <div class="stat-sub" id="statRatingSub">No data yet</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Conversion Rate</div>
+            <div class="stat-value" id="statConv">—</div>
+            <div class="stat-sub">Request → Review ratio</div>
+          </div>
+        </div>
+
+        <div class="card-2col">
+          <div class="card">
+            <div class="card-title">📈 Review Growth (Last 7 Days)</div>
+            <div class="chart-wrap"><canvas id="growthChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🎯 Monthly Review Target</div>
+            <div id="targetContent">
+              <p style="color:var(--gray);font-size:.88rem;margin-bottom:16px;">Your goal for this month:</p>
+              <div style="font-size:2.4rem;font-weight:800;" id="targetNum">—</div>
+              <div style="color:var(--gray);font-size:.84rem;" id="targetDesc">reviews this month</div>
+              <div class="progress-wrap">
+                <div class="progress-label"><span>Progress</span><span id="progressPct">0%</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+              </div>
+              <div style="margin-top:16px;padding:12px;background:rgba(37,211,102,.08);border-radius:8px;">
+                <div style="font-size:.82rem;color:var(--gray);">Before AutoGreet</div>
+                <div style="font-size:1.1rem;font-weight:700;" id="beforeRating">—</div>
+                <div style="font-size:.82rem;color:var(--gray);margin-top:8px;">After AutoGreet</div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--green);" id="afterRating">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🕐 Recent Activity</div>
+          <div class="activity-list" id="activityList">
+            <div style="color:var(--gray);font-size:.88rem;text-align:center;padding:20px;">No activity yet. Send your first review request to get started!</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── SEND REQUESTS ── -->
+      <section class="page-section" id="page-send">
+        <div class="page-title">📨 Send Review Requests</div>
+        <div class="page-sub">Send individual WhatsApp review requests to your customers</div>
+
+        <div class="card">
+          <div class="card-title">Send a Single Request</div>
+          <div class="single-send-form">
+            <div class="form-group">
+              <label>Customer Name</label>
+              <input id="sendName" type="text" placeholder="Rahul Kumar"/>
+            </div>
+            <div class="form-group">
+              <label>Phone (with country code)</label>
+              <input id="sendPhone" type="text" placeholder="919876543210"/>
+            </div>
+            <div class="form-group">
+              <label>Email (optional)</label>
+              <input id="sendEmail" type="email" placeholder="customer@email.com"/>
+            </div>
+            <button class="btn btn-green" onclick="sendSingle()" style="height:40px;">Send ➜</button>
+          </div>
+
+          <div class="card" style="background:var(--navy3);padding:16px;">
+            <div class="card-title" style="font-size:.88rem;margin-bottom:10px;">📱 Preview WhatsApp Message</div>
+            <div style="background:#075e54;border-radius:12px;padding:16px;font-size:.85rem;line-height:1.6;position:relative;">
+              <div style="background:#dcf8c6;color:#111;border-radius:10px;padding:12px 14px;max-width:85%;font-family:sans-serif;">
+                Hi <strong><span id="previewName">Rahul</span></strong>! 😊 Thank you for visiting <strong id="previewBiz">your business</strong>.<br/><br/>
+                We'd love to hear your feedback! Could you spare 30 seconds to leave us a quick Google review? It really helps small businesses like us grow! 🙏<br/><br/>
+                👉 <span style="color:#0a5c36;text-decoration:underline;">g.co/your-review-link</span><br/><br/>
+                Thank you so much! — AutoGreet Team
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📋 Send Queue &amp; Log</div>
+          <div class="queue-status">
+            <div class="queue-tag">Sent: <span id="qSent">0</span></div>
+            <div class="queue-tag">Pending: <span id="qPending">0</span></div>
+            <div class="queue-tag">Failed: <span id="qFailed">0</span></div>
+          </div>
+          <div class="preview-table-wrap">
+            <table>
+              <thead><tr><th>Customer</th><th>Phone</th><th>Sent At</th><th>Status</th></tr></thead>
+              <tbody id="sendLogBody">
+                <tr><td colspan="4" style="text-align:center;color:var(--gray);padding:24px;">No requests sent yet this session</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── BULK UPLOAD ── -->
+      <section class="page-section" id="page-upload">
+        <div class="page-title">📤 Bulk Upload Customers</div>
+        <div class="page-sub">Upload your customer list as CSV or Excel to send review requests in bulk</div>
+
+        <div class="card">
+          <div class="card-title">⬇️ Step 1: Download Sample Template</div>
+          <p style="font-size:.88rem;color:var(--gray);margin-bottom:16px;">Download our pre-formatted Excel template. Fill in your customer details and upload below. Do not change column headers.</p>
+          <div style="background:var(--navy3);border-radius:10px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:.82rem;color:var(--gray);margin-bottom:8px;">Required columns:</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span style="background:rgba(37,211,102,.15);color:var(--green);padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">customer_name ✓</span>
+              <span style="background:rgba(37,211,102,.15);color:var(--green);padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">phone ✓</span>
+              <span style="background:rgba(52,152,219,.15);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">email (optional)</span>
+              <span style="background:rgba(52,152,219,.15);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">visit_date (optional)</span>
+              <span style="background:rgba(52,152,219,.15);color:var(--blue);padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;">notes (optional)</span>
+            </div>
+          </div>
+          <button class="btn btn-gold" onclick="downloadTemplate()">⬇️ Download Sample Excel Template</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📁 Step 2: Upload Your Customer List</div>
+          <div class="upload-zone" id="uploadZone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+            <input type="file" id="csvFile" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)"/>
+            <div class="upload-icon">📁</div>
+            <h3>Drop your file here or click to browse</h3>
+            <p>Supports .xlsx, .xls, .csv files — up to 500 customers per upload</p>
+          </div>
+          <div class="upload-actions">
+            <button class="btn btn-green" onclick="processUpload()" id="sendAllBtn" disabled>🚀 Send to All Customers</button>
+            <button class="btn btn-outline" onclick="clearUpload()">✕ Clear</button>
+          </div>
+        </div>
+
+        <div class="card" id="previewCard" style="display:none;">
+          <div class="card-title">👁 Preview — <span id="previewCount">0</span> customers loaded</div>
+          <div class="preview-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th><th>Customer Name</th><th>Phone</th><th>Email</th><th>Visit Date</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── TRANSACTIONS ── -->
+      <section class="page-section" id="page-transactions">
+        <div class="page-title">💳 Payments &amp; Transactions</div>
+        <div class="page-sub">Your plan details and payment history</div>
+
+        <div class="card-2col">
+          <div class="card">
+            <div class="card-title">📋 Current Plan</div>
+            <div id="planDetails" style="font-size:.9rem;line-height:1.8;"></div>
+          </div>
+          <div class="card" id="paymentActionCard">
+            <div class="card-title">✅ Payment Status</div>
+            <div id="paymentStatusBlock"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🧾 Transaction History</div>
+          <div id="txnList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">💬 Need Help?</div>
+          <p style="font-size:.88rem;color:var(--gray);margin-bottom:14px;">For billing queries, upgrades, or plan changes — reach us on WhatsApp:</p>
+          <a href="https://wa.me/919250257509?text=Hi+AutoGreet%2C+I+have+a+billing+query" target="_blank" class="btn btn-green">💬 WhatsApp Support</a>
+        </div>
+      </section>
+
+      <!-- ── ACCOUNT ── -->
+      <section class="page-section" id="page-account">
+        <div class="page-title">🏪 My Business</div>
+        <div class="page-sub">Your registered business details with AutoGreet</div>
+
+        <div class="card">
+          <div class="card-title">Business Information</div>
+          <div class="info-grid" id="bizInfoGrid"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🔗 Your Google Review Link</div>
+          <div id="reviewLinkBlock"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📞 AutoGreet Support</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <a href="https://wa.me/919250257509" target="_blank" class="btn btn-green">💬 WhatsApp</a>
+            <a href="mailto:anuragini.pathak@autogreet.in" class="btn btn-outline">📧 Email Support</a>
+            <a href="https://www.instagram.com/anutechaitools/" target="_blank" class="btn btn-outline">📸 Instagram</a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- WhatsApp float -->
+<button class="wa-float" onclick="window.open('https://wa.me/919250257509?text=Hi+AutoGreet%2C+I+need+help!','_blank')" title="WhatsApp Support">💬</button>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CLIENT DATABASE — credentials + data
+// ═══════════════════════════════════════════════════════
+const CLIENTS = [
+  {
+    id: 1001,
+    email: 'aritikasingh@gmail.com',
+    phone: '7058113754',
+    password: 'TasteTales@2026',
+    owner: 'Prerana Singh',
+    business: 'Taste Tales',
+    type: 'Delivery Only Restaurant',
+    city: 'Lucknow',
+    plan: 'starter',
+    payment_status: 'paid',
+    payment_amount: 4999,
+    payment_date: '2026-03-28',
+    payment_ref: 'MANUAL-001',
+    status: 'setup_in_progress',
+    google_review_link: 'https://g.page/r/YOUR_TASTE_TALES_ID/review',
+    monthly_target: 30,
+    reviews_sent: 12,
+    reviews_received: 7,
+    rating_before: 3.8,
+    rating_after: 4.5,
+    go_live: '2026-03-28',
+    plan_price: 4999,
+    mrr: 0,
+    history: [2,3,1,4,2,3,5]
+  },
+  {
+    id: 1002,
+    email: 'shrey@apdesigns.in',
+    phone: '9919988383',
+    password: 'APDesigns@2026',
+    owner: 'Shrey Pathak',
+    business: 'AP Designs and Creations',
+    type: 'Interior Design Firm',
+    city: 'Lucknow',
+    plan: 'starter',
+    payment_status: 'paid',
+    payment_amount: 4999,
+    payment_date: '2026-03-28',
+    payment_ref: 'MANUAL-002',
+    status: 'setup_in_progress',
+    google_review_link: 'https://g.page/r/YOUR_AP_DESIGNS_ID/review',
+    monthly_target: 20,
+    reviews_sent: 8,
+    reviews_received: 4,
+    rating_before: 4.0,
+    rating_after: 4.6,
+    go_live: '2026-03-28',
+    plan_price: 4999,
+    mrr: 0,
+    history: [1,2,1,3,1,2,4]
+  }
+];
+
+const PLAN_LABELS = { starter:'Starter Plan', growth:'Growth Pack', authority:'Authority Pack' };
+const PLAN_FEES   = { starter:4999, growth:8999, authority:14999 };
+const PAYMENT_LINKS = {
+  starter:'https://rzp.io/rzp/6iO6w81b',
+  growth:'https://rzp.io/rzp/P2lPawQv',
+  authority:'https://rzp.io/rzp/k3e5eVs'
+};
+
+let currentClient = null;
+let sendLog = [];
+let uploadedRows = [];
+let growthChartInst = null;
+
+// ═══════════════════════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value.trim();
+  if (!u || !p) { showLoginErr('Please enter your email/phone and password.'); return; }
+
+  // Allow login by email OR phone
+  const client = CLIENTS.find(c =>
+    c.email.toLowerCase() === u || c.phone === u || c.phone.replace('+91','') === u
+  );
+
+  if (!client || client.password !== p) {
+    showLoginErr('Invalid credentials. Please check your email/phone and password.');
+    return;
+  }
+
+  currentClient = client;
+  sessionStorage.setItem('ag_portal_client_id', client.id);
+  initPortal(client);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') doLogin();
+});
+
+function showLoginErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function doLogout() {
+  currentClient = null;
+  sessionStorage.removeItem('ag_portal_client_id');
+  document.getElementById('portalApp').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT PORTAL
+// ═══════════════════════════════════════════════════════
+function initPortal(c) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('portalApp').style.display = 'block';
+
+  // Sidebar
+  document.getElementById('sidebarPlan').textContent = PLAN_LABELS[c.plan] || c.plan;
+  document.getElementById('ownerName').textContent = c.owner.split(' ')[0];
+  document.getElementById('bizNameSub').textContent = c.business + ' · ' + c.type;
+
+  // Payment alert
+  if (c.payment_status !== 'paid') {
+    document.getElementById('payAlert').style.display = 'flex';
+  }
+
+  // Stats
+  document.getElementById('statSent').textContent = c.reviews_sent || 0;
+  document.getElementById('statReviews').textContent = c.reviews_received || 0;
+  const rating = c.rating_after || c.rating_before || '—';
+  document.getElementById('statRating').textContent = rating !== '—' ? rating + '★' : '—';
+  document.getElementById('statRatingSub').textContent = c.rating_before && c.rating_after
+    ? `Up from ${c.rating_before}★`
+    : 'Will update after first week';
+  const conv = c.reviews_sent > 0 ? Math.round((c.reviews_received / c.reviews_sent) * 100) + '%' : '—';
+  document.getElementById('statConv').textContent = conv;
+
+  // Target
+  document.getElementById('targetNum').textContent = c.monthly_target || 30;
+  document.getElementById('targetDesc').textContent = 'reviews this month';
+  const pct = c.monthly_target > 0 ? Math.round((c.reviews_received / c.monthly_target) * 100) : 0;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
+  document.getElementById('beforeRating').textContent = c.rating_before ? c.rating_before + '★ avg rating' : 'Not set yet';
+  document.getElementById('afterRating').textContent = c.rating_after ? c.rating_after + '★ avg rating' : 'Will track after week 1';
+
+  // Activity
+  buildActivity(c);
+
+  // Chart
+  setTimeout(() => buildGrowthChart(c), 100);
+
+  // WhatsApp preview biz name
+  document.getElementById('previewBiz').textContent = c.business;
+
+  // Transactions
+  buildTransactions(c);
+
+  // Account info
+  buildAccountInfo(c);
+
+  // Nav
+  setupNav();
+}
+
+function buildActivity(c) {
+  const list = document.getElementById('activityList');
+  const items = [
+    { icon:'✅', cls:'green', text:`Account activated — ${c.business} onboarded`, time: formatDate(c.go_live || c.payment_date) },
+    { icon:'💳', cls:'gold', text:`Payment received ₹${c.payment_amount?.toLocaleString('en-IN')} (${c.payment_ref})`, time: formatDate(c.payment_date) },
+    { icon:'📱', cls:'blue', text:`${c.reviews_sent || 0} review requests sent via WhatsApp`, time:'This month' },
+    { icon:'⭐', cls:'gold', text:`${c.reviews_received || 0} new Google reviews received`, time:'This month' },
+  ];
+  list.innerHTML = items.map(i => `
+    <div class="activity-item">
+      <div class="act-icon ${i.cls}">${i.icon}</div>
+      <div class="act-body">
+        <div class="act-text">${i.text}</div>
+        <div class="act-time">${i.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function buildGrowthChart(c) {
+  const ctx = document.getElementById('growthChart');
+  if (!ctx) return;
+  if (growthChartInst) growthChartInst.destroy();
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const data = c.history || [0,0,0,0,0,0,0];
+  growthChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'Reviews',
+        data: data,
+        borderColor: '#25d366',
+        backgroundColor: 'rgba(37,211,102,.12)',
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#25d366',
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color:'rgba(255,255,255,.05)' }, ticks: { color:'#8a9bb0', font:{size:11} } },
+        y: { grid: { color:'rgba(255,255,255,.05)' }, ticks: { color:'#8a9bb0', precision:0, font:{size:11} } }
+      }
+    }
+  });
+}
+
+function buildTransactions(c) {
+  const planBlock = document.getElementById('planDetails');
+  const plan = c.plan || 'starter';
+  const features = {
+    starter: ['Up to 50 review requests/month','WhatsApp automation via n8n','Google review link tracking','Email support'],
+    growth: ['Up to 200 review requests/month','AI-generated review responses','Monthly performance report','Priority WhatsApp support','All Starter features'],
+    authority: ['Unlimited review requests','AI response automation','Bi-weekly strategy calls','Dedicated account manager','All Growth features']
+  };
+  planBlock.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <span class="badge badge-plan" style="font-size:.9rem;padding:6px 14px;">${PLAN_LABELS[plan]}</span>
+    </div>
+    <div style="font-size:.85rem;color:var(--gray);margin-bottom:12px;">₹${PLAN_FEES[plan]?.toLocaleString('en-IN')} setup ${c.mrr > 0 ? '+ ₹'+c.mrr?.toLocaleString('en-IN')+'/mo' : '(one-time)'}</div>
+    <ul style="list-style:none;font-size:.85rem;line-height:1.9;">
+      ${(features[plan]||[]).map(f=>`<li>✓ ${f}</li>`).join('')}
+    </ul>
+    <div style="margin-top:14px;">
+      <a href="https://wa.me/919250257509?text=Hi+AutoGreet%2C+I+want+to+upgrade+my+plan" target="_blank" class="btn btn-outline btn-sm">⬆️ Upgrade Plan</a>
+    </div>
+  `;
+
+  const statusBlock = document.getElementById('paymentStatusBlock');
+  if (c.payment_status === 'paid') {
+    statusBlock.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="font-size:1.6rem;">✅</span>
+        <div><div style="font-weight:700;color:var(--green);">Payment Confirmed</div>
+        <div style="font-size:.82rem;color:var(--gray);">Paid on ${formatDate(c.payment_date)}</div></div>
+      </div>
+      <div style="font-size:.88rem;color:var(--gray);">Ref: ${c.payment_ref || '—'}</div>
+    `;
+  } else {
+    statusBlock.innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:1.4rem;margin-bottom:10px;">⏳</div>
+        <div style="font-weight:700;color:var(--gold);margin-bottom:6px;">Payment Pending</div>
+        <div style="font-size:.84rem;color:var(--gray);margin-bottom:16px;">Complete your payment to activate automation</div>
+        <a href="${PAYMENT_LINKS[c.plan]}" target="_blank" class="pay-btn" style="display:inline-block;text-decoration:none;">💳 Pay Now — ₹${PLAN_FEES[c.plan]?.toLocaleString('en-IN')}</a>
+      </div>
+    `;
+  }
+
+  const txnList = document.getElementById('txnList');
+  const txns = [];
+  if (c.payment_status === 'paid') {
+    txns.push({ ref: c.payment_ref, desc: PLAN_LABELS[c.plan]+' — Setup Fee', amount: c.payment_amount, date: c.payment_date, status:'paid' });
+  }
+  if (c.mrr > 0) {
+    txns.push({ ref:'RECURRING-001', desc: PLAN_LABELS[c.plan]+' — Monthly', amount: c.mrr, date:'Due next month', status:'pending' });
+  }
+  if (txns.length === 0) {
+    txnList.innerHTML = '<div style="text-align:center;color:var(--gray);padding:24px;font-size:.88rem;">No transactions yet</div>';
+  } else {
+    txnList.innerHTML = txns.map(t => `
+      <div class="txn-row">
+        <div><div class="txn-ref">${t.ref}</div><div class="txn-desc">${t.desc}</div></div>
+        <div class="txn-amount">₹${(t.amount||0).toLocaleString('en-IN')}</div>
+        <div class="txn-date">${formatDate(t.date)}</div>
+        <span class="badge badge-${t.status}">${t.status}</span>
+      </div>
+    `).join('');
+  }
+}
+
+function buildAccountInfo(c) {
+  document.getElementById('bizInfoGrid').innerHTML = `
+    <div class="info-item"><label>Business Name</label><p>${c.business}</p></div>
+    <div class="info-item"><label>Business Type</label><p>${c.type}</p></div>
+    <div class="info-item"><label>Owner</label><p>${c.owner}</p></div>
+    <div class="info-item"><label>City</label><p>${c.city || 'Lucknow'}</p></div>
+    <div class="info-item"><label>Phone</label><p>${c.phone}</p></div>
+    <div class="info-item"><label>Email</label><p>${c.email}</p></div>
+    <div class="info-item"><label>Plan</label><p><span class="badge badge-plan">${PLAN_LABELS[c.plan]}</span></p></div>
+    <div class="info-item"><label>Go-Live Date</label><p>${formatDate(c.go_live || c.payment_date)}</p></div>
+  `;
+
+  const rlBlock = document.getElementById('reviewLinkBlock');
+  if (c.google_review_link && !c.google_review_link.includes('YOUR_')) {
+    rlBlock.innerHTML = `
+      <p style="font-size:.88rem;color:var(--gray);margin-bottom:12px;">Share this link in WhatsApp messages to collect reviews:</p>
+      <div style="background:var(--navy3);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:.85rem;word-break:break-all;color:var(--green);">${c.google_review_link}</div>
+      <div style="margin-top:10px;display:flex;gap:10px;">
+        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${c.google_review_link}');showToast('Link copied!','success')">📋 Copy Link</button>
+        <a href="${c.google_review_link}" target="_blank" class="btn btn-outline btn-sm">🔗 Test Link</a>
+      </div>
+    `;
+  } else {
+    rlBlock.innerHTML = `
+      <div style="background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.2);border-radius:8px;padding:14px 16px;font-size:.86rem;color:rgba(255,255,255,.7);">
+        ⏳ Your Google Review link will be configured during setup. We'll notify you on WhatsApp once ready. If it's been more than 24 hours,
+        <a href="https://wa.me/919250257509" target="_blank" style="color:var(--green);">message us</a>.
+      </div>
+    `;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function setupNav() {
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.dataset.page;
+      showPage(page);
+    });
+  });
+}
+
+function showPage(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+  const section = document.getElementById('page-' + page);
+  if (section) section.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+//  SINGLE SEND
+// ═══════════════════════════════════════════════════════
+function sendSingle() {
+  const name = document.getElementById('sendName').value.trim();
+  const phone = document.getElementById('sendPhone').value.trim();
+  if (!name || !phone) { showToast('Please enter customer name and phone.','error'); return; }
+  if (!currentClient) return;
+
+  const N8N_URL = 'https://wtaanu.app.n8n.cloud/webhook/autogreet-review';
+  const payload = {
+    customer_name: name,
+    customer_phone: phone,
+    customer_email: document.getElementById('sendEmail').value.trim(),
+    business_name: currentClient.business,
+    review_link: currentClient.google_review_link,
+    client_id: currentClient.id
+  };
+
+  fetch(N8N_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), mode:'no-cors' })
+    .then(() => {})
+    .catch(() => {});
+
+  // Log locally
+  const entry = { name, phone, sentAt: new Date().toLocaleString('en-IN'), status:'sent' };
+  sendLog.unshift(entry);
+  renderSendLog();
+  document.getElementById('sendName').value = '';
+  document.getElementById('sendPhone').value = '';
+  document.getElementById('sendEmail').value = '';
+  document.getElementById('qSent').textContent = sendLog.filter(r=>r.status==='sent').length;
+  showToast(`✅ Request queued for ${name}!`,'success');
+}
+
+document.getElementById('sendName')?.addEventListener('input', e => {
+  document.getElementById('previewName').textContent = e.target.value || 'Customer';
+});
+
+function renderSendLog() {
+  const tbody = document.getElementById('sendLogBody');
+  if (sendLog.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray);padding:24px;">No requests sent yet this session</td></tr>';
+    return;
+  }
+  tbody.innerHTML = sendLog.map(r => `
+    <tr>
+      <td>${r.name}</td>
+      <td>${r.phone}</td>
+      <td>${r.sentAt}</td>
+      <td><span class="badge badge-${r.status}">${r.status}</span></td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  BULK UPLOAD
+// ═══════════════════════════════════════════════════════
+function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag'); }
+function handleDragLeave()  { document.getElementById('uploadZone').classList.remove('drag'); }
+function handleDrop(e)      { e.preventDefault(); handleDragLeave(); if(e.dataTransfer.files[0]) parseFile(e.dataTransfer.files[0]); }
+function handleFileSelect(e){ if(e.target.files[0]) parseFile(e.target.files[0]); }
+
+function parseFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      // Normalise column names
+      uploadedRows = rows.map(r => {
+        const keys = Object.keys(r);
+        const find = (names) => keys.find(k => names.some(n => k.toLowerCase().replace(/[\s_]/g,'').includes(n))) || null;
+        return {
+          customer_name: r[find(['customername','name','fullname'])||keys[0]] || '',
+          phone:         (r[find(['phone','mobile','contact','whatsapp'])||''] || '').toString().replace(/\D/g,''),
+          email:         r[find(['email','mail'])||''] || '',
+          visit_date:    r[find(['visitdate','date','visiteddate'])||''] || '',
+          notes:         r[find(['notes','note','remark'])||''] || '',
+          status: 'ready'
+        };
+      }).filter(r => r.customer_name || r.phone);
+
+      renderUploadPreview();
+      document.getElementById('sendAllBtn').disabled = uploadedRows.length === 0;
+      showToast(`✅ ${uploadedRows.length} customers loaded`, 'success');
+    } catch(err) {
+      showToast('Could not parse file. Please use the sample template.','error');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function renderUploadPreview() {
+  document.getElementById('previewCard').style.display = 'block';
+  document.getElementById('previewCount').textContent = uploadedRows.length;
+  document.getElementById('previewBody').innerHTML = uploadedRows.slice(0, 50).map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.customer_name}</td>
+      <td>${r.phone}</td>
+      <td>${r.email}</td>
+      <td>${r.visit_date}</td>
+      <td><span class="badge badge-${r.status}">${r.status}</span></td>
+    </tr>`).join('') + (uploadedRows.length > 50 ? `<tr><td colspan="6" style="text-align:center;color:var(--gray);">…and ${uploadedRows.length-50} more</td></tr>` : '');
+}
+
+function processUpload() {
+  if (!currentClient || uploadedRows.length === 0) return;
+  const N8N_URL = 'https://wtaanu.app.n8n.cloud/webhook/autogreet-review';
+  let sent = 0;
+  uploadedRows.forEach((r,i) => {
+    setTimeout(() => {
+      const payload = {
+        customer_name: r.customer_name,
+        customer_phone: r.phone,
+        customer_email: r.email,
+        business_name: currentClient.business,
+        review_link: currentClient.google_review_link,
+        client_id: currentClient.id
+      };
+      fetch(N8N_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'}).catch(()=>{});
+      uploadedRows[i].status = 'sent';
+      sent++;
+      if (sent === uploadedRows.length) {
+        renderUploadPreview();
+        showToast(`🚀 All ${sent} requests queued successfully!`,'success');
+      }
+    }, i * 300);
+  });
+  showToast(`Sending to ${uploadedRows.length} customers…`,'success');
+}
+
+function clearUpload() {
+  uploadedRows = [];
+  document.getElementById('csvFile').value = '';
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('sendAllBtn').disabled = true;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DOWNLOAD SAMPLE TEMPLATE
+// ═══════════════════════════════════════════════════════
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  const data = [
+    ['customer_name','phone','email','visit_date','notes'],
+    ['Rahul Kumar','919876543210','rahul@gmail.com','2026-03-28','Loved the food'],
+    ['Priya Sharma','919812345678','priya@email.com','2026-03-27','Regular customer'],
+    ['Amit Singh','919898765432','','2026-03-26',''],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:20},{wch:16},{wch:28},{wch:14},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+  XLSX.writeFile(wb, 'AutoGreet_Customer_Template.xlsx');
+  showToast('📥 Sample template downloaded!','success');
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════
+function formatDate(d) {
+  if (!d) return '—';
+  try { return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+  catch { return d; }
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Auto-restore session
+window.addEventListener('load', () => {
+  const id = sessionStorage.getItem('ag_portal_client_id');
+  if (id) {
+    const c = CLIENTS.find(x => x.id == id);
+    if (c) { currentClient = c; initPortal(c); }
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+{
+  "name": "AutoGreet — Review Request Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autogreet-review",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook — Receive Review Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "autogreet-review"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.customer_name }}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.phone }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "validate-input",
+      "name": "Validate — Name & Phone Present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "credentials",
+        "from": "={{ $env.TWILIO_WHATSAPP_NUMBER }}",
+        "to": "=whatsapp:+{{ $json.phone }}",
+        "message": "=Hi {{ $json.customer_name }}! 👋\n\nThank you for visiting *{{ $json.business_name }}* today!\n\nWe hope you had a wonderful experience. If you enjoyed your visit, we'd love it if you could take 30 seconds to leave us a Google review — it really helps small businesses grow! 🌟\n\n👉 {{ $json.review_link }}\n\nThank you so much! 🙏\n— Team {{ $json.business_name }}\n\n_Powered by AutoGreet_"
+      },
+      "id": "send-whatsapp-1",
+      "name": "Twilio — Send WhatsApp Message",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [680, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-creds",
+          "name": "Twilio — AutoGreet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"error\", \"message\": \"Missing customer_name or phone\" }",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "error-response",
+      "name": "Respond — 400 Bad Request",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "hours"
+      },
+      "id": "wait-3hr",
+      "name": "Wait — 3 Hours Before Follow-Up",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "credentials",
+        "from": "={{ $env.TWILIO_WHATSAPP_NUMBER }}",
+        "to": "=whatsapp:+{{ $('Webhook — Receive Review Request').item.json.phone }}",
+        "message": "=Hi {{ $('Webhook — Receive Review Request').item.json.customer_name }}! 😊\n\nJust a gentle reminder — we'd really appreciate your Google review for *{{ $('Webhook — Receive Review Request').item.json.business_name }}*.\n\n👉 {{ $('Webhook — Receive Review Request').item.json.review_link }}\n\nIt only takes 30 seconds and means the world to us! ⭐\n\nThank you!\n— Team {{ $('Webhook — Receive Review Request').item.json.business_name }}"
+      },
+      "id": "send-followup",
+      "name": "Twilio — Send Follow-Up Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1120, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-creds",
+          "name": "Twilio — AutoGreet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "ReviewLog",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp":       "={{ new Date().toISOString() }}",
+            "customer_name":   "={{ $('Webhook — Receive Review Request').item.json.customer_name }}",
+            "phone":           "={{ $('Webhook — Receive Review Request').item.json.phone }}",
+            "business_name":   "={{ $('Webhook — Receive Review Request').item.json.business_name }}",
+            "client_id":       "={{ $('Webhook — Receive Review Request').item.json.client_id }}",
+            "review_link":     "={{ $('Webhook — Receive Review Request').item.json.review_link }}",
+            "first_msg_sid":   "={{ $('Twilio — Send WhatsApp Message').item.json.sid }}",
+            "followup_sid":    "={{ $('Twilio — Send Follow-Up Reminder').item.json.sid }}",
+            "status":          "sent"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-sheets",
+      "name": "Google Sheets — Log Review Request",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1340, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-creds",
+          "name": "Google Sheets — AutoGreet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'queued', customer: $('Webhook — Receive Review Request').item.json.customer_name, business: $('Webhook — Receive Review Request').item.json.business_name, message_sid: $('Twilio — Send WhatsApp Message').item.json.sid }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "success-response",
+      "name": "Respond — 200 Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    }
+  ],
+  "connections": {
+    "Webhook — Receive Review Request": {
+      "main": [
+        [{ "node": "Validate — Name & Phone Present", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate — Name & Phone Present": {
+      "main": [
+        [{ "node": "Twilio — Send WhatsApp Message", "type": "main", "index": 0 }],
+        [{ "node": "Respond — 400 Bad Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Twilio — Send WhatsApp Message": {
+      "main": [
+        [{ "node": "Wait — 3 Hours Before Follow-Up", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait — 3 Hours Before Follow-Up": {
+      "main": [
+        [{ "node": "Twilio — Send Follow-Up Reminder", "type": "main", "index": 0 }]
+      ]
+    },
+    "Twilio — Send Follow-Up Reminder": {
+      "main": [
+        [{ "node": "Google Sheets — Log Review Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Google Sheets — Log Review Request": {
+      "main": [
+        [{ "node": "Respond — 200 Success", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    { "createdAt": "2026-03-28", "updatedAt": "2026-03-28", "id": "autogreet", "name": "AutoGreet" }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-03-28T00:00:00.000Z",
+  "versionId": "1"
+}

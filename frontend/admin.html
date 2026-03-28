@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AutoGreet Admin — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#1E3A5F;--navy2:#0F2440;--navy3:#162d4a;
+  --green:#25D366;--green2:#128C7E;--green3:#0d6b61;
+  --gold:#F59E0B;--purple:#8B5CF6;--red:#EF4444;--blue:#3B82F6;
+  --bg:#0F172A;--card:#1E293B;--card2:#263548;
+  --border:#334155;--text:#E2E8F0;--muted:#94A3B8;--white:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;
+  justify-content:center;z-index:9999;flex-direction:column;gap:24px;}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:40px;width:360px;text-align:center;}
+.login-logo{font-size:28px;font-weight:900;color:var(--white);margin-bottom:6px;}
+.login-logo span{color:var(--green);}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:28px;}
+.login-input{width:100%;padding:12px 16px;background:var(--bg);border:2px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:15px;font-family:inherit;outline:none;
+  transition:border-color .2s;margin-bottom:14px;}
+.login-input:focus{border-color:var(--green);}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--green),var(--green2));
+  color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:all .2s;}
+.login-btn:hover{opacity:.9;transform:translateY(-1px);}
+.login-err{color:var(--red);font-size:13px;margin-top:8px;display:none;}
+
+/* ── SIDEBAR ── */
+.layout{display:flex;min-height:100vh;}
+.sidebar{width:240px;background:var(--navy2);border-right:1px solid var(--border);
+  padding:24px 0;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;}
+.sidebar-logo{padding:0 20px 24px;border-bottom:1px solid var(--border);}
+.sidebar-logo .brand{font-size:20px;font-weight:900;color:var(--white);}
+.sidebar-logo .brand span{color:var(--green);}
+.sidebar-logo .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.nav-section{padding:16px 0 8px 20px;font-size:10px;font-weight:700;color:var(--muted);
+  letter-spacing:1.5px;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;
+  color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;
+  transition:all .2s;cursor:pointer;border-left:3px solid transparent;}
+.nav-item:hover,.nav-item.active{color:var(--white);background:rgba(37,211,102,.08);
+  border-left-color:var(--green);}
+.nav-item .icon{font-size:17px;width:22px;text-align:center;}
+.sidebar-footer{margin-top:auto;padding:20px;border-top:1px solid var(--border);
+  font-size:12px;color:var(--muted);}
+
+/* ── MAIN ── */
+.main{flex:1;overflow:auto;}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);
+  padding:16px 28px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;}
+.topbar-title{font-size:18px;font-weight:700;color:var(--white);}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.topbar-badge{background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.3);
+  color:var(--green);padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;}
+.logout-btn{background:transparent;border:1px solid var(--border);color:var(--muted);
+  padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:all .2s;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+.page{padding:28px;display:none;}
+.page.active{display:block;}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:28px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:22px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-green::before{background:linear-gradient(90deg,var(--green),var(--green2));}
+.stat-gold::before{background:linear-gradient(90deg,var(--gold),#e07b00);}
+.stat-purple::before{background:linear-gradient(90deg,var(--purple),#5b21b6);}
+.stat-blue::before{background:linear-gradient(90deg,var(--blue),#1d4ed8);}
+.stat-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:10px;}
+.stat-val{font-size:34px;font-weight:900;color:var(--white);line-height:1;}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:6px;}
+.stat-icon{position:absolute;right:18px;top:50%;transform:translateY(-50%);
+  font-size:32px;opacity:.15;}
+
+/* ── CHARTS ROW ── */
+.charts-row{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-bottom:28px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.chart-title{font-size:15px;font-weight:700;color:var(--white);margin-bottom:4px;}
+.chart-sub{font-size:12px;color:var(--muted);margin-bottom:18px;}
+.chart-wrap{position:relative;height:220px;}
+
+/* ── TABLE ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:17px;font-weight:700;color:var(--white);}
+.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;
+  font-weight:600;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:linear-gradient(135deg,var(--green),var(--green2));color:white;}
+.btn-primary:hover{opacity:.9;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-outline:hover{border-color:var(--green);color:var(--green);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{background:transparent;border:1px solid var(--border);color:var(--red);}
+
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead{background:var(--card2);}
+thead th{padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1px;white-space:nowrap;}
+tbody tr{border-top:1px solid var(--border);transition:background .15s;}
+tbody tr:hover{background:var(--card2);}
+tbody td{padding:14px 16px;font-size:13px;color:var(--text);}
+.client-name{font-weight:700;color:var(--white);}
+.client-biz{font-size:11px;color:var(--muted);}
+
+/* ── BADGES ── */
+.badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-block;}
+.badge-paid{background:rgba(37,211,102,.15);color:var(--green);}
+.badge-pending{background:rgba(245,158,11,.15);color:var(--gold);}
+.badge-active{background:rgba(59,130,246,.15);color:var(--blue);}
+.badge-setup{background:rgba(245,158,11,.15);color:var(--gold);}
+.badge-new{background:rgba(139,92,246,.15);color:var(--purple);}
+.badge-completed{background:rgba(37,211,102,.15);color:var(--green);}
+.badge-starter{background:rgba(37,211,102,.12);color:var(--green);}
+.badge-growth{background:rgba(245,158,11,.12);color:var(--gold);}
+.badge-authority{background:rgba(139,92,246,.12);color:var(--purple);}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;
+  display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:32px;width:580px;max-height:90vh;overflow-y:auto;max-width:95vw;}
+.modal-title{font-size:18px;font-weight:700;color:var(--white);margin-bottom:20px;
+  display:flex;align-items:center;justify-content:space-between;}
+.modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--white);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{margin-bottom:16px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.form-input{width:100%;padding:10px 14px;background:var(--bg);border:2px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:14px;font-family:inherit;outline:none;
+  transition:border-color .2s;}
+.form-input:focus{border-color:var(--green);}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394A3B8' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;
+  padding-top:20px;border-top:1px solid var(--border);}
+
+/* ── CLIENT DETAIL ── */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.detail-item .dl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.detail-item .dv{font-size:14px;color:var(--white);font-weight:500;}
+.progress-bar-wrap{background:var(--bg);border-radius:999px;height:8px;margin-top:4px;}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--green),var(--green2));border-radius:999px;transition:width .5s;}
+
+/* ── REVENUE PAGE ── */
+.revenue-filters{display:flex;gap:10px;margin-bottom:20px;}
+.filter-btn{padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;
+  color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.filter-btn.active,.filter-btn:hover{background:var(--green);color:white;border-color:var(--green);}
+
+/* ── ACTION BUTTONS ── */
+.action-row{display:flex;gap:6px;}
+.act-btn{background:transparent;border:1px solid var(--border);color:var(--muted);
+  padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;
+  transition:all .2s;white-space:nowrap;}
+.act-btn:hover{border-color:var(--green);color:var(--green);}
+.act-btn.danger:hover{border-color:var(--red);color:var(--red);}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Auto<span>Greet</span></div>
+    <div class="login-sub">Admin Portal — Authorised Access Only</div>
+    <input type="password" class="login-input" id="pwd" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">🔐 Login</button>
+    <div class="login-err" id="login-err">Incorrect password. Try again.</div>
+    <div style="margin-top:16px;font-size:11px;color:#475569">Default: autogreet2026 (change in .env)</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="layout" id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">Auto<span>Greet</span></div>
+      <div class="sub">Admin Dashboard</div>
+    </div>
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="showPage('overview')"><span class="icon">📊</span> Overview</div>
+    <div class="nav-item" onclick="showPage('clients')"><span class="icon">👥</span> Clients</div>
+    <div class="nav-item" onclick="showPage('revenue')"><span class="icon">💰</span> Revenue</div>
+    <div class="nav-item" onclick="showPage('onboard')"><span class="icon">➕</span> Onboard Client</div>
+    <div class="nav-section">Tools</div>
+    <div class="nav-item" onclick="window.open('demo.html')"><span class="icon">📱</span> Demo App</div>
+    <div class="nav-item" onclick="window.open('index.html')"><span class="icon">🌐</span> Website</div>
+    <div class="nav-item" onclick="window.open('https://wa.me/919250257509')"><span class="icon">💬</span> WhatsApp</div>
+    <div class="sidebar-footer">
+      <div style="font-weight:600;color:var(--white);font-size:13px">Anuragini Pathak</div>
+      <div>anuragini.pathak@autogreet.in</div>
+      <div style="margin-top:4px;color:var(--green);font-size:11px">● System Online</div>
+    </div>
+  </aside>
+
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">📊 Overview</div>
+      <div class="topbar-right">
+        <div class="topbar-badge" id="live-date"></div>
+        <button class="logout-btn" onclick="doLogout()">Logout</button>
+      </div>
+    </div>
+
+    <!-- ══ OVERVIEW PAGE ══ -->
+    <div class="page active" id="page-overview">
+      <div class="stats-grid">
+        <div class="stat-card stat-green">
+          <div class="stat-label">Total Revenue</div>
+          <div class="stat-val" id="s-revenue">₹0</div>
+          <div class="stat-sub" id="s-revenue-sub">Loading...</div>
+          <div class="stat-icon">💰</div>
+        </div>
+        <div class="stat-card stat-gold">
+          <div class="stat-label">Active Clients</div>
+          <div class="stat-val" id="s-clients">0</div>
+          <div class="stat-sub" id="s-clients-sub">Loading...</div>
+          <div class="stat-icon">👥</div>
+        </div>
+        <div class="stat-card stat-purple">
+          <div class="stat-label">Reviews Generated</div>
+          <div class="stat-val" id="s-reviews">0</div>
+          <div class="stat-sub">Across all clients</div>
+          <div class="stat-icon">⭐</div>
+        </div>
+        <div class="stat-card stat-blue">
+          <div class="stat-label">Pending Setups</div>
+          <div class="stat-val" id="s-pending">0</div>
+          <div class="stat-sub">Need action today</div>
+          <div class="stat-icon">⚙️</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">Revenue Trend</div>
+          <div class="chart-sub">Monthly collected revenue (₹)</div>
+          <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Clients by Plan</div>
+          <div class="chart-sub">Distribution across plans</div>
+          <div class="chart-wrap"><canvas id="planChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Recent Clients</div>
+        <button class="btn btn-primary btn-sm" onclick="showPage('onboard')">➕ Add New Client</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr>
+            <th>Client</th><th>Plan</th><th>Payment</th><th>Status</th><th>Reviews</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="overview-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ CLIENTS PAGE ══ -->
+    <div class="page" id="page-clients">
+      <div class="section-header">
+        <div class="section-title">All Clients <span id="client-count" style="font-size:14px;color:var(--muted);font-weight:400"></span></div>
+        <div style="display:flex;gap:10px">
+          <input type="text" class="form-input" id="client-search" placeholder="🔍 Search clients..." style="width:220px;padding:8px 12px;font-size:13px" oninput="renderClients()"/>
+          <button class="btn btn-primary btn-sm" onclick="showPage('onboard')">➕ Add Client</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Business</th><th>Owner</th><th>Plan</th><th>Paid</th><th>Status</th><th>Reviews</th><th>Setup</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="clients-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ REVENUE PAGE ══ -->
+    <div class="page" id="page-revenue">
+      <div class="stats-grid">
+        <div class="stat-card stat-green">
+          <div class="stat-label">Total Collected</div>
+          <div class="stat-val" id="r-total">₹0</div>
+          <div class="stat-sub">All time</div>
+          <div class="stat-icon">💳</div>
+        </div>
+        <div class="stat-card stat-gold">
+          <div class="stat-label">This Month</div>
+          <div class="stat-val" id="r-month">₹0</div>
+          <div class="stat-sub" id="r-month-label">March 2026</div>
+          <div class="stat-icon">📅</div>
+        </div>
+        <div class="stat-card stat-purple">
+          <div class="stat-label">Monthly Recurring</div>
+          <div class="stat-val" id="r-mrr">₹0</div>
+          <div class="stat-sub">Active retainers</div>
+          <div class="stat-icon">🔄</div>
+        </div>
+        <div class="stat-card stat-blue">
+          <div class="stat-label">Projected (12mo)</div>
+          <div class="stat-val" id="r-projected">₹0</div>
+          <div class="stat-sub">If all retain</div>
+          <div class="stat-icon">📈</div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:24px">
+        <div class="chart-title">Revenue Breakdown by Plan</div>
+        <div class="chart-sub">Collected setup fees + monthly retainer value</div>
+        <div class="chart-wrap"><canvas id="revenueBar"></canvas></div>
+      </div>
+      <div class="section-header"><div class="section-title">Payment Ledger</div>
+        <button class="btn btn-outline btn-sm" onclick="exportRevCSV()">📥 Export CSV</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Business</th><th>Owner</th><th>Plan</th><th>Amount</th><th>Ref</th><th>Status</th></tr></thead>
+          <tbody id="revenue-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ ONBOARD PAGE ══ -->
+    <div class="page" id="page-onboard">
+      <div style="max-width:700px">
+        <div class="section-header"><div class="section-title">➕ Onboard New Client</div></div>
+        <div class="table-card" style="padding:28px;border-radius:14px">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Owner Name *</label>
+              <input class="form-input" id="f-owner" placeholder="e.g. Priya Sharma"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Business Name *</label>
+              <input class="form-input" id="f-biz" placeholder="e.g. Taste Tales"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Business Type *</label>
+              <select class="form-input form-select" id="f-type">
+                <option>Restaurant / Café</option>
+                <option>Interior / Design Firm</option>
+                <option>Salon / Spa</option>
+                <option>Gym / Fitness Studio</option>
+                <option>Hotel / Guest House</option>
+                <option>Clinic / Doctor</option>
+                <option>Retail Shop</option>
+                <option>Home Services</option>
+                <option>Coaching / Tuition</option>
+                <option>Auto Services</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input class="form-input" id="f-city" placeholder="Lucknow" value="Lucknow"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">WhatsApp *</label>
+              <input class="form-input" id="f-phone" placeholder="9876543210"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="form-input" id="f-email" placeholder="owner@business.com"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Plan *</label>
+              <select class="form-input form-select" id="f-plan">
+                <option value="starter">🟢 Starter — ₹4,999</option>
+                <option value="growth">⭐ Growth — ₹8,999</option>
+                <option value="authority">👑 Authority — ₹14,999</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Status *</label>
+              <select class="form-input form-select" id="f-payment">
+                <option value="paid">✅ Paid</option>
+                <option value="pending">⏳ Pending</option>
+                <option value="partial">🔶 Partial</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Payment Date</label>
+              <input class="form-input" type="date" id="f-paydate"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Ref / Mode</label>
+              <input class="form-input" id="f-payref" placeholder="Razorpay / UPI / Manual"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Google Maps URL</label>
+              <input class="form-input" id="f-gmaps" placeholder="https://maps.google.com/..."/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Google Review Link</label>
+              <input class="form-input" id="f-review-link" placeholder="https://g.page/r/..."/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" id="f-notes" rows="2" placeholder="Any special instructions or context..."></textarea>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px">
+            <button class="btn btn-primary" onclick="addClient()" style="flex:1;padding:14px">➕ Add Client to System</button>
+            <button class="btn btn-outline" onclick="clearForm()">Clear</button>
+          </div>
+          <div id="form-msg" style="margin-top:12px;font-size:13px;display:none"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- CLIENT DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-biz-name">Client Details</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="saveClientEdits()" id="save-edits-btn">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+const ADMIN_PWD  = 'autogreet2026'; // Change this — or load from backend
+const PLAN_FEES  = { starter: 4999, growth: 8999, authority: 14999 };
+const PLAN_MRR   = { starter: 0,    growth: 2499, authority: 3999  };
+
+// ── STATE ────────────────────────────────────────────────────────
+let clients = [];
+let editingId = null;
+
+// ── DEFAULT CLIENTS (Starter Pack — already onboarded) ───────────
+const DEFAULT_CLIENTS = [
+  {
+    id: 1001, owner: 'Prerana Singh', business: 'Taste Tales',
+    type: 'Delivery Only Restaurant', city: 'Lucknow',
+    email: 'aritikasingh@gmail.com', phone: '7058113754',
+    plan: 'starter', plan_label: '🟢 Starter',
+    status: 'setup_in_progress', payment_status: 'paid',
+    payment_amount: 4999, payment_date: '2026-03-28', payment_ref: 'MANUAL-001',
+    reviews_before: 0, reviews_after: 0, target_reviews: 30,
+    google_rating_before: 0, google_rating_after: 0,
+    review_link: '', gmaps_url: '', tone: 'Warm & Friendly',
+    setup_date: '2026-03-28', go_live_date: '',
+    notes: 'First client. Payment collected manually 28 March 2026.',
+    created_at: '2026-03-28T10:00:00.000Z'
+  },
+  {
+    id: 1002, owner: 'Shrey Pathak', business: 'AP Designs and Creations',
+    type: 'Interior Design Firm', city: 'Lucknow',
+    email: '', phone: '9919988383',
+    plan: 'starter', plan_label: '🟢 Starter',
+    status: 'setup_in_progress', payment_status: 'paid',
+    payment_amount: 4999, payment_date: '2026-03-28', payment_ref: 'MANUAL-002',
+    reviews_before: 0, reviews_after: 0, target_reviews: 30,
+    google_rating_before: 0, google_rating_after: 0,
+    review_link: '', gmaps_url: '', tone: 'Professional & Friendly',
+    setup_date: '2026-03-28', go_live_date: '',
+    notes: 'Second client. Payment collected manually 28 March 2026.',
+    created_at: '2026-03-28T11:00:00.000Z'
+  }
+];
+
+// ── AUTH ─────────────────────────────────────────────────────────
+function doLogin() {
+  const pwd = document.getElementById('pwd').value;
+  if (pwd === ADMIN_PWD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    init();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+function doLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pwd').value = '';
+  document.getElementById('login-err').style.display = 'none';
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+function init() {
+  // Load from localStorage or use defaults
+  const saved = localStorage.getItem('ag_clients');
+  clients = saved ? JSON.parse(saved) : DEFAULT_CLIENTS;
+  if (!saved) saveClients();
+  document.getElementById('live-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('f-paydate').value = new Date().toISOString().split('T')[0];
+  renderAll();
+  buildCharts();
+}
+
+function saveClients() {
+  localStorage.setItem('ag_clients', JSON.stringify(clients));
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+const pageTitles = {
+  overview: '📊 Overview', clients: '👥 All Clients',
+  revenue: '💰 Revenue', onboard: '➕ Onboard New Client'
+};
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.includes(pageTitles[name]?.slice(2))) n.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = pageTitles[name] || name;
+  renderAll();
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────
+function renderAll() {
+  updateStats();
+  renderOverviewTable();
+  renderClients();
+  renderRevenue();
+}
+
+// ── STATS ──────────────────────────────────────────────────────────
+function updateStats() {
+  const total   = clients.reduce((s,c) => s + (c.payment_amount||0), 0);
+  const active  = clients.filter(c => c.status !== 'cancelled').length;
+  const reviews = clients.reduce((s,c) => s + (c.reviews_after||0), 0);
+  const pending = clients.filter(c => c.status === 'setup_in_progress' || c.status === 'new').length;
+  const mrr     = clients.filter(c => c.plan !== 'starter' && c.status === 'active')
+                          .reduce((s,c) => s + PLAN_MRR[c.plan], 0);
+  const proj    = total + mrr * 12;
+  const mnth    = clients.filter(c => c.payment_date?.startsWith(new Date().toISOString().slice(0,7)))
+                          .reduce((s,c) => s + (c.payment_amount||0), 0);
+
+  document.getElementById('s-revenue').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('s-revenue-sub').textContent = active + ' paying clients';
+  document.getElementById('s-clients').textContent = active;
+  document.getElementById('s-clients-sub').textContent = clients.length + ' total registered';
+  document.getElementById('s-reviews').textContent = reviews;
+  document.getElementById('s-pending').textContent = pending;
+  document.getElementById('r-total').textContent   = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('r-month').textContent   = '₹' + mnth.toLocaleString('en-IN');
+  document.getElementById('r-mrr').textContent     = '₹' + mrr.toLocaleString('en-IN');
+  document.getElementById('r-projected').textContent = '₹' + proj.toLocaleString('en-IN');
+}
+
+// ── OVERVIEW TABLE ─────────────────────────────────────────────────
+function renderOverviewTable() {
+  const tbody = document.getElementById('overview-table');
+  if (!clients.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty"><div class="empty-icon">👥</div>No clients yet</td></tr>'; return; }
+  tbody.innerHTML = clients.slice(0,5).map(c => `
+    <tr>
+      <td><div class="client-name">${c.business}</div><div class="client-biz">${c.owner} · ${c.city}</div></td>
+      <td><span class="badge badge-${c.plan}">${c.plan_label||c.plan}</span></td>
+      <td><span class="badge badge-${c.payment_status}">${c.payment_status==='paid'?'✅ Paid':'⏳ Pending'}</span></td>
+      <td><span class="badge badge-${c.status}">${statusLabel(c.status)}</span></td>
+      <td>${c.reviews_after||0} / ${c.target_reviews||30}</td>
+      <td><div class="action-row">
+        <button class="act-btn" onclick="openDetail(${c.id})">✏️ Edit</button>
+        <button class="act-btn" onclick="sendWA(${c.id})">💬 WA</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+// ── CLIENTS TABLE ──────────────────────────────────────────────────
+function renderClients() {
+  const q     = (document.getElementById('client-search')?.value||'').toLowerCase();
+  const list  = q ? clients.filter(c => (c.business+c.owner+c.city).toLowerCase().includes(q)) : clients;
+  document.getElementById('client-count').textContent = `(${list.length})`;
+  const tbody = document.getElementById('clients-table');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty"><div class="empty-icon">🔍</div>No clients found</td></tr>'; return; }
+  tbody.innerHTML = list.map((c,i) => `
+    <tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td><div class="client-name">${c.business}</div><div class="client-biz">${c.type}</div></td>
+      <td><div style="font-size:13px">${c.owner}</div><div class="client-biz">📱 ${c.phone}</div></td>
+      <td><span class="badge badge-${c.plan}">${c.plan_label||c.plan}</span></td>
+      <td>
+        <div style="font-size:13px;color:${c.payment_status==='paid'?'var(--green)':'var(--gold)'}">₹${(c.payment_amount||0).toLocaleString('en-IN')}</div>
+        <div class="client-biz">${c.payment_date||'—'}</div>
+      </td>
+      <td><span class="badge badge-${c.status}">${statusLabel(c.status)}</span></td>
+      <td>
+        <div style="font-size:13px">${c.reviews_after||0} new</div>
+        <div class="progress-bar-wrap" style="width:80px">
+          <div class="progress-bar" style="width:${Math.min(100,((c.reviews_after||0)/(c.target_reviews||30))*100)}%"></div>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--muted)">${c.setup_date||'—'}</td>
+      <td><div class="action-row">
+        <button class="act-btn" onclick="openDetail(${c.id})">✏️</button>
+        <button class="act-btn" onclick="sendWA(${c.id})">💬</button>
+        <button class="act-btn danger" onclick="deleteClient(${c.id})">🗑</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+// ── REVENUE TABLE ──────────────────────────────────────────────────
+function renderRevenue() {
+  const tbody = document.getElementById('revenue-table');
+  tbody.innerHTML = clients.map((c,i) => `
+    <tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="font-size:12px;color:var(--muted)">${c.payment_date||'—'}</td>
+      <td><div class="client-name" style="font-size:13px">${c.business}</div></td>
+      <td style="font-size:13px">${c.owner}</td>
+      <td><span class="badge badge-${c.plan}">${c.plan_label||c.plan}</span></td>
+      <td style="font-weight:700;color:var(--green)">₹${(c.payment_amount||0).toLocaleString('en-IN')}</td>
+      <td style="font-size:12px;color:var(--muted)">${c.payment_ref||'—'}</td>
+      <td><span class="badge badge-${c.payment_status}">${c.payment_status==='paid'?'✅ Paid':'⏳ Pending'}</span></td>
+    </tr>`).join('');
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────
+function statusLabel(s) {
+  const map = { new:'🆕 New', setup_in_progress:'⚙️ Setting Up', active:'✅ Active', paused:'⏸ Paused', cancelled:'❌ Cancelled' };
+  return map[s]||s;
+}
+function sendWA(id) {
+  const c = clients.find(x => x.id===id);
+  if (!c) return;
+  const msg = encodeURIComponent(`Hi ${c.owner}! This is Anuragini from AutoGreet. I'm reaching out regarding your ${c.plan} setup for ${c.business}. 🚀`);
+  window.open(`https://wa.me/91${c.phone}?text=${msg}`,'_blank');
+}
+function deleteClient(id) {
+  if (!confirm('Delete this client?')) return;
+  clients = clients.filter(c => c.id !== id);
+  saveClients(); renderAll();
+}
+
+// ── DETAIL MODAL ───────────────────────────────────────────────────
+function openDetail(id) {
+  editingId = id;
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('modal-biz-name').textContent = c.business + ' — ' + c.owner;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="detail-grid">
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-input form-select" id="e-status">
+          ${['new','setup_in_progress','active','paused','cancelled'].map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${statusLabel(s)}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Reviews After</label>
+        <input class="form-input" id="e-reviews" type="number" value="${c.reviews_after||0}"/></div>
+      <div class="form-group"><label class="form-label">Rating Before</label>
+        <input class="form-input" id="e-rating-b" type="number" step="0.1" value="${c.google_rating_before||0}"/></div>
+      <div class="form-group"><label class="form-label">Rating After</label>
+        <input class="form-input" id="e-rating-a" type="number" step="0.1" value="${c.google_rating_after||0}"/></div>
+      <div class="form-group"><label class="form-label">Google Review Link</label>
+        <input class="form-input" id="e-review-link" value="${c.review_link||''}"/></div>
+      <div class="form-group"><label class="form-label">Go-Live Date</label>
+        <input class="form-input" type="date" id="e-golive" value="${c.go_live_date||''}"/></div>
+      <div class="form-group" style="grid-column:1/-1"><label class="form-label">Notes</label>
+        <textarea class="form-input" id="e-notes" rows="2">${c.notes||''}</textarea></div>
+    </div>
+    <div style="padding:14px;background:var(--bg);border-radius:10px;font-size:12px;color:var(--muted);margin-top:4px">
+      <strong style="color:var(--text)">Contact:</strong> ${c.phone} | ${c.email||'No email'} &nbsp;|&nbsp;
+      <strong style="color:var(--text)">Plan:</strong> ${c.plan_label||c.plan} &nbsp;|&nbsp;
+      <strong style="color:var(--text)">Paid:</strong> ₹${(c.payment_amount||0).toLocaleString('en-IN')} on ${c.payment_date||'—'}
+    </div>`;
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('detail-modal').classList.remove('open'); }
+function saveClientEdits() {
+  const idx = clients.findIndex(c => c.id === editingId);
+  if (idx === -1) return;
+  clients[idx].status              = document.getElementById('e-status').value;
+  clients[idx].reviews_after       = parseInt(document.getElementById('e-reviews').value)||0;
+  clients[idx].google_rating_before = parseFloat(document.getElementById('e-rating-b').value)||0;
+  clients[idx].google_rating_after  = parseFloat(document.getElementById('e-rating-a').value)||0;
+  clients[idx].review_link         = document.getElementById('e-review-link').value;
+  clients[idx].go_live_date        = document.getElementById('e-golive').value;
+  clients[idx].notes               = document.getElementById('e-notes').value;
+  saveClients(); renderAll(); closeModal();
+}
+
+// ── ADD CLIENT ─────────────────────────────────────────────────────
+function addClient() {
+  const owner = document.getElementById('f-owner').value.trim();
+  const biz   = document.getElementById('f-biz').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  if (!owner||!biz||!phone) { showMsg('Please fill Owner Name, Business Name and Phone.','var(--red)'); return; }
+  const plan  = document.getElementById('f-plan').value;
+  const pmap  = { starter:'🟢 Starter', growth:'⭐ Growth', authority:'👑 Authority' };
+  const client = {
+    id: Date.now(), owner, business: biz,
+    type:  document.getElementById('f-type').value,
+    city:  document.getElementById('f-city').value,
+    email: document.getElementById('f-email').value,
+    phone, plan, plan_label: pmap[plan],
+    status: 'new',
+    payment_status: document.getElementById('f-payment').value,
+    payment_amount: PLAN_FEES[plan],
+    payment_date:   document.getElementById('f-paydate').value,
+    payment_ref:    document.getElementById('f-payref').value,
+    gmaps_url: document.getElementById('f-gmaps').value,
+    review_link: document.getElementById('f-review-link').value,
+    reviews_before:0, reviews_after:0, target_reviews:30,
+    google_rating_before:0, google_rating_after:0,
+    notes: document.getElementById('f-notes').value,
+    setup_date: new Date().toISOString().split('T')[0],
+    created_at: new Date().toISOString()
+  };
+  clients.unshift(client);
+  saveClients(); renderAll();
+  clearForm();
+  showMsg('✅ Client added successfully! Switch to Clients tab to view.','var(--green)');
+}
+function clearForm() {
+  ['f-owner','f-biz','f-city','f-email','f-phone','f-payref','f-gmaps','f-review-link','f-notes']
+    .forEach(id => document.getElementById(id).value = id==='f-city'?'Lucknow':'');
+  document.getElementById('f-plan').value = 'starter';
+  document.getElementById('f-payment').value = 'paid';
+  document.getElementById('f-paydate').value = new Date().toISOString().split('T')[0];
+}
+function showMsg(msg, color) {
+  const el = document.getElementById('form-msg');
+  el.style.display = 'block';
+  el.style.color = color;
+  el.textContent = msg;
+  setTimeout(() => el.style.display='none', 5000);
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function buildCharts() {
+  const months = ['Oct','Nov','Dec','Jan','Feb','Mar'];
+  const monthRevenue = [0,0,0,0,0, clients.reduce((s,c)=>s+(c.payment_amount||0),0)];
+
+  // Revenue trend
+  new Chart(document.getElementById('revenueChart'), {
+    type:'line',
+    data:{ labels:months, datasets:[{ label:'Revenue (₹)', data:monthRevenue,
+      borderColor:'#25D366', backgroundColor:'rgba(37,211,102,.1)',
+      tension:.4, fill:true, pointBackgroundColor:'#25D366' }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#94A3B8'}},
+               y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#94A3B8',callback:v=>'₹'+v}} } }
+  });
+
+  // Plan distribution donut
+  const planCounts = {starter:0,growth:0,authority:0};
+  clients.forEach(c => planCounts[c.plan]=(planCounts[c.plan]||0)+1);
+  new Chart(document.getElementById('planChart'), {
+    type:'doughnut',
+    data:{ labels:['Starter','Growth','Authority'],
+      datasets:[{ data:[planCounts.starter,planCounts.growth,planCounts.authority],
+        backgroundColor:['#25D366','#F59E0B','#8B5CF6'],
+        borderColor:'#1E293B', borderWidth:3 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{labels:{color:'#E2E8F0',font:{size:12}}} } }
+  });
+
+  // Revenue bar
+  const ctx3 = document.getElementById('revenueBar');
+  if (ctx3) new Chart(ctx3, {
+    type:'bar',
+    data:{ labels:['Starter Setups','Growth Setups','Authority Setups','Monthly Retainers'],
+      datasets:[{ label:'Revenue (₹)',
+        data:[
+          clients.filter(c=>c.plan==='starter').reduce((s,c)=>s+(c.payment_amount||0),0),
+          clients.filter(c=>c.plan==='growth').reduce((s,c)=>s+(c.payment_amount||0),0),
+          clients.filter(c=>c.plan==='authority').reduce((s,c)=>s+(c.payment_amount||0),0),
+          clients.filter(c=>c.plan!=='starter'&&c.status==='active').reduce((s,c)=>s+PLAN_MRR[c.plan],0)
+        ],
+        backgroundColor:['rgba(37,211,102,.7)','rgba(245,158,11,.7)','rgba(139,92,246,.7)','rgba(59,130,246,.7)'],
+        borderRadius:8 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#94A3B8'}},
+               y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#94A3B8',callback:v=>'₹'+v}} } }
+  });
+}
+
+// ── EXPORT CSV ────────────────────────────────────────────────────
+function exportRevCSV() {
+  const rows = [['Date','Business','Owner','Plan','Amount','Ref','Status']].concat(
+    clients.map(c=>[c.payment_date,c.business,c.owner,c.plan,c.payment_amount,c.payment_ref,c.payment_status]));
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'autogreet-revenue.csv'; a.click();
+}
+</script>
+</body>
+</html>

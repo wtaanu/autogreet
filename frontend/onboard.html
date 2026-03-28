@@ -4,7 +4,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>AutoGreet — Client Onboarding</title>
-<link rel="icon" type="image/png" href="favicon-192.png"/>
+<link rel="icon" type="image/svg+xml" href="../../autogreet-icon.svg"/>
+<link rel="icon" type="image/png" sizes="192x192" href="../../favicon-192.png"/>
 <style>
 :root{--navy:#1E3A5F;--green:#25D366;--green2:#128C7E;--gold:#F59E0B;--bg:#F0F4F8;--border:#E2E8F0;--grey:#64748B;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -293,16 +294,46 @@ textarea{resize:vertical;min-height:90px;}
   <div id="step-success" class="hidden">
     <div class="card success-card">
       <div class="success-icon">🎉</div>
-      <h2>You're All Set!</h2>
-      <p>Thank you for choosing AutoGreet! Your onboarding details have been submitted. Here's what happens next:</p>
+      <h2>Account Created!</h2>
+      <p>Your AutoGreet account is ready. Complete your payment below to activate automation — then log in to your dashboard.</p>
+
+      <!-- Credentials box -->
+      <div style="background:#F0FDF4;border:2px solid #22C55E;border-radius:12px;padding:20px;margin:20px 0;text-align:left;">
+        <div style="font-weight:700;color:#15803D;margin-bottom:12px;font-size:15px;">🔐 Your Login Credentials</div>
+        <div style="font-size:13px;color:#374151;line-height:2;">
+          <div>🌐 <strong>Portal URL:</strong> <a href="portal.html" target="_blank" style="color:#16A34A;">autogreet.in/portal.html</a></div>
+          <div>📧 <strong>Username:</strong> <span id="cred-email" style="font-family:monospace;background:#E0F2FE;padding:2px 8px;border-radius:4px;">your@email.com</span></div>
+          <div>🔑 <strong>Password:</strong> <span id="cred-pass" style="font-family:monospace;background:#E0F2FE;padding:2px 8px;border-radius:4px;">Biz@2026</span></div>
+        </div>
+        <p style="font-size:11px;color:#6B7280;margin-top:10px;">💡 Save these credentials. You can change your password after first login by contacting support.</p>
+      </div>
+
+      <!-- Payment CTA -->
+      <div style="background:#FFFBEB;border:2px solid #F59E0B;border-radius:12px;padding:20px;margin:16px 0;">
+        <div style="font-weight:700;color:#92400E;margin-bottom:8px;">💳 Step 2: Complete Payment to Activate</div>
+        <p style="font-size:13px;color:#78350F;margin-bottom:16px;">Your account is created but automation won't start until payment is confirmed. It takes just 30 seconds!</p>
+        <a id="success-pay-btn" href="#" target="_blank"
+           style="display:block;text-align:center;padding:16px;background:linear-gradient(135deg,#F59E0B,#D97706);
+           color:white;border-radius:10px;font-weight:800;font-size:16px;text-decoration:none;
+           box-shadow:0 4px 16px rgba(245,158,11,.4);margin-bottom:8px;">
+          💳 Pay Now via Razorpay
+        </a>
+      </div>
+
+      <!-- Portal login btn -->
+      <a href="portal.html" target="_blank" style="display:block;text-align:center;padding:14px;background:linear-gradient(135deg,#25D366,#128C7E);
+        color:white;border-radius:10px;font-weight:800;font-size:15px;text-decoration:none;margin-bottom:16px;">
+        🚀 Go to My Dashboard
+      </a>
+
       <div class="success-steps">
         <h3>What happens next:</h3>
-        <div class="success-step"><div class="num">1</div><div>Anuragini will WhatsApp you within 2 hours to confirm your order and collect Google Business Profile access.</div></div>
-        <div class="success-step"><div class="num">2</div><div>We'll complete your full setup — WhatsApp automation, AI responder, and dashboard — within 48 hours.</div></div>
-        <div class="success-step"><div class="num">3</div><div>You'll receive a Loom video walkthrough of your live system before we hand it over.</div></div>
-        <div class="success-step"><div class="num">4</div><div>Your first Google reviews should start arriving within 72 hours of going live!</div></div>
+        <div class="success-step"><div class="num">1</div><div>Anuragini will WhatsApp you within 2 hours to confirm and collect Google Business Profile access.</div></div>
+        <div class="success-step"><div class="num">2</div><div>Full setup — WhatsApp automation, AI responder, dashboard — completed within 48 hours.</div></div>
+        <div class="success-step"><div class="num">3</div><div>You'll get a Loom video walkthrough of your live system.</div></div>
+        <div class="success-step"><div class="num">4</div><div>Your first Google reviews start arriving within 72 hours of going live!</div></div>
       </div>
-      <a href="https://wa.me/919250257509?text=Hi+Anuragini%2C+I+just+submitted+my+AutoGreet+onboarding+form!" class="wa-btn" target="_blank">
+      <a href="https://wa.me/919250257509?text=Hi+Anuragini%2C+I+just+submitted+my+AutoGreet+onboarding+form!" class="wa-btn" target="_blank" style="margin-top:16px;display:block;">
         💬 WhatsApp Us Now
       </a>
     </div>
@@ -311,12 +342,20 @@ textarea{resize:vertical;min-height:90px;}
 </div><!-- /main -->
 
 <script>
-let selectedPlan = 'growth';
+// Auto-select plan from URL param e.g. onboard.html?plan=starter
+const urlParams = new URLSearchParams(window.location.search);
+let selectedPlan = urlParams.get('plan') || 'growth';
 const payLinks = {
   starter:   'https://rzp.io/rzp/6iO6w81b',
   growth:    'https://rzp.io/rzp/P2lPawQv',
   authority: 'https://rzp.io/rzp/k3e5eVs'
 };
+// Apply URL-pre-selected plan on page load
+window.addEventListener('DOMContentLoaded', () => {
+  if (['starter','growth','authority'].includes(selectedPlan)) {
+    selectPlan(selectedPlan);
+  }
+});
 const planDesc = {
   starter:   '🟢 <strong>Starter</strong> — WhatsApp review requests (200/mo), AI review responses, dashboard. Perfect for getting started.',
   growth:    '⭐ <strong>Growth</strong> is most popular for growing businesses — includes brand-voice AI, WhatsApp + Email outreach, custom dashboard, and monthly reports.',
@@ -396,9 +435,18 @@ function submitForm() {
     submitted_at: new Date().toISOString(), form: 'autogreet_onboard'
   };
   // Fire webhook (placeholder — update with real n8n URL)
-  const webhookUrl = 'https://n8n-placeholder.autogreet.in/webhook/new-client';
+  const webhookUrl = 'https://wtaanu.app.n8n.cloud/webhook/new-client';
   fetch(webhookUrl, {method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(payload),mode:'no-cors'}).catch(()=>{});
+
+  // Generate credentials for success screen
+  const bizFirst = g('bizName').split(' ')[0] || 'Biz';
+  const tempPass = bizFirst + '@' + new Date().getFullYear();
+  const credEmail = g('email') || g('phone');
+  document.getElementById('cred-email').textContent = credEmail;
+  document.getElementById('cred-pass').textContent = tempPass;
+  document.getElementById('success-pay-btn').href = payLinks[selectedPlan];
+
   // Show success
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById('step'+i);
