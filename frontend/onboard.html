@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AutoGreet — Client Onboarding</title>
+<link rel="icon" type="image/png" href="favicon-192.png"/>
+<style>
+:root{--navy:#1E3A5F;--green:#25D366;--green2:#128C7E;--gold:#F59E0B;--bg:#F0F4F8;--border:#E2E8F0;--grey:#64748B;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:#1E293B;min-height:100vh;}
+.nav{background:linear-gradient(135deg,var(--navy),#0F2440);padding:14px 5%;display:flex;align-items:center;justify-content:space-between;}
+.nav-brand{color:white;font-size:20px;font-weight:800;}
+.nav-brand span{color:var(--green);}
+.nav-back{color:rgba(255,255,255,.65);font-size:13px;text-decoration:none;}
+.nav-back:hover{color:white;}
+
+.hero{background:linear-gradient(135deg,#0EA5E9,var(--green));color:white;padding:40px 5%;text-align:center;}
+.hero h1{font-size:28px;font-weight:800;margin-bottom:8px;}
+.hero p{font-size:15px;opacity:.9;}
+
+/* Steps indicator */
+.steps-bar{background:white;padding:20px 5%;display:flex;justify-content:center;gap:0;box-shadow:0 1px 8px rgba(0,0,0,.06);}
+.step-dot{display:flex;align-items:center;gap:8px;}
+.step-dot .dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);
+  color:var(--grey);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.step-dot .dot.active{background:var(--green);border-color:var(--green);color:white;}
+.step-dot .dot.done{background:var(--navy);border-color:var(--navy);color:white;}
+.step-dot .label{font-size:12px;font-weight:600;color:var(--grey);}
+.step-dot .label.active{color:var(--navy);}
+.step-line{width:48px;height:2px;background:var(--border);margin:0 4px;}
+.step-line.done{background:var(--navy);}
+
+.main{max-width:680px;margin:32px auto;padding:0 20px 60px;}
+.card{background:white;border-radius:16px;padding:32px;box-shadow:0 2px 16px rgba(0,0,0,.07);margin-bottom:20px;}
+.card-title{font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+.card-sub{font-size:14px;color:var(--grey);margin-bottom:24px;}
+.form-group{margin-bottom:18px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;}
+label .req{color:#EF4444;}
+input,select,textarea{width:100%;padding:11px 14px;border:2px solid var(--border);border-radius:10px;
+  font-size:14px;font-family:inherit;color:#1E293B;outline:none;background:#FAFAFA;transition:border-color .2s;}
+input:focus,select:focus,textarea:focus{border-color:var(--green);background:white;}
+textarea{resize:vertical;min-height:90px;}
+.hint{font-size:11px;color:var(--grey);margin-top:4px;}
+.btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;font-size:16px;
+  font-weight:700;font-family:inherit;transition:all .2s;margin-top:8px;}
+.btn-primary{background:linear-gradient(135deg,var(--green),var(--green2));color:white;
+  box-shadow:0 4px 16px rgba(37,211,102,.35);}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,211,102,.45);}
+.btn-back{background:var(--bg);color:var(--grey);border:2px solid var(--border);}
+.btn-back:hover{border-color:var(--navy);color:var(--navy);}
+.btn-row{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-top:16px;}
+.plan-select{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;}
+.plan-opt{border:2px solid var(--border);border-radius:12px;padding:16px 12px;text-align:center;
+  cursor:pointer;transition:all .2s;}
+.plan-opt:hover{border-color:var(--green);}
+.plan-opt.selected{border-color:var(--green);background:#F0FFF4;}
+.plan-opt .p-name{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.plan-opt .p-price{font-size:16px;font-weight:800;color:var(--green);}
+.plan-opt .p-cycle{font-size:10px;color:var(--grey);}
+.info-box{background:#EEF3FF;border-left:4px solid var(--navy);border-radius:8px;
+  padding:14px 16px;font-size:13px;color:#1E40AF;margin-bottom:20px;line-height:1.6;}
+.success-card{text-align:center;padding:48px 32px;}
+.success-icon{font-size:64px;margin-bottom:20px;}
+.success-card h2{font-size:24px;font-weight:800;color:var(--navy);margin-bottom:10px;}
+.success-card p{color:var(--grey);font-size:15px;line-height:1.7;max-width:480px;margin:0 auto 28px;}
+.success-steps{background:var(--bg);border-radius:12px;padding:20px;text-align:left;margin-top:8px;}
+.success-steps h3{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px;}
+.success-step{display:flex;gap:10px;margin-bottom:10px;font-size:13px;color:var(--grey);}
+.success-step .num{width:22px;height:22px;border-radius:50%;background:var(--green);
+  color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.wa-btn{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:white;
+  padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;margin-top:20px;}
+.hidden{display:none!important;}
+@media(max-width:540px){.form-row,.plan-select{grid-template-columns:1fr;}.btn-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">Auto<span>Greet</span></div>
+  <a href="index.html" class="nav-back">← Back to website</a>
+</nav>
+
+<div class="hero">
+  <h1>🚀 Get Started with AutoGreet</h1>
+  <p>Fill in your details and we'll have your review automation live within 48 hours</p>
+</div>
+
+<!-- STEP INDICATOR -->
+<div class="steps-bar">
+  <div class="step-dot">
+    <div class="dot active" id="dot1">1</div>
+    <div class="label active" id="lbl1">Your Business</div>
+  </div>
+  <div class="step-line" id="line1"></div>
+  <div class="step-dot">
+    <div class="dot" id="dot2">2</div>
+    <div class="label" id="lbl2">Choose Plan</div>
+  </div>
+  <div class="step-line" id="line2"></div>
+  <div class="step-dot">
+    <div class="dot" id="dot3">3</div>
+    <div class="label" id="lbl3">Setup Details</div>
+  </div>
+  <div class="step-line" id="line3"></div>
+  <div class="step-dot">
+    <div class="dot" id="dot4">4</div>
+    <div class="label" id="lbl4">Confirm</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ══ STEP 1: Business Details ══ -->
+  <div id="step1">
+    <div class="card">
+      <div class="card-title">🏢 Your Business Details</div>
+      <div class="card-sub">Tell us about your business so we can personalise everything for you.</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Owner Name <span class="req">*</span></label>
+          <input type="text" id="ownerName" placeholder="e.g. Priya Sharma"/>
+        </div>
+        <div class="form-group">
+          <label>Business Name <span class="req">*</span></label>
+          <input type="text" id="bizName" placeholder="e.g. Taste Tales"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Business Type <span class="req">*</span></label>
+          <select id="bizType">
+            <option value="">Select type...</option>
+            <option>Restaurant / Café</option>
+            <option>Interior / Design Firm</option>
+            <option>Salon / Spa</option>
+            <option>Gym / Fitness Studio</option>
+            <option>Hotel / Guest House</option>
+            <option>Clinic / Doctor</option>
+            <option>Retail Shop</option>
+            <option>Home Services</option>
+            <option>Coaching / Tuition</option>
+            <option>Auto Services</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>City <span class="req">*</span></label>
+          <input type="text" id="city" placeholder="e.g. Lucknow" value="Lucknow"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Business Address</label>
+        <input type="text" id="address" placeholder="Full address including area/landmark"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>WhatsApp Number <span class="req">*</span></label>
+          <input type="tel" id="phone" placeholder="9876543210"/>
+          <div class="hint">We'll contact you on this number</div>
+        </div>
+        <div class="form-group">
+          <label>Email Address <span class="req">*</span></label>
+          <input type="email" id="email" placeholder="you@business.com"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Google Maps / Business URL</label>
+        <input type="url" id="gmapsUrl" placeholder="https://maps.google.com/..."/>
+        <div class="hint">Paste your Google Maps business link — we'll extract the review link</div>
+      </div>
+      <button class="btn btn-primary" onclick="goStep(2)">Continue → Choose Your Plan</button>
+    </div>
+  </div>
+
+  <!-- ══ STEP 2: Plan Selection ══ -->
+  <div id="step2" class="hidden">
+    <div class="card">
+      <div class="card-title">💰 Choose Your Plan</div>
+      <div class="card-sub">All plans include a 60-day review guarantee. No lock-in contracts.</div>
+      <div class="plan-select">
+        <div class="plan-opt" id="opt-starter" onclick="selectPlan('starter')">
+          <div class="p-name">🟢 Starter</div>
+          <div class="p-price">₹4,999</div>
+          <div class="p-cycle">one-time</div>
+        </div>
+        <div class="plan-opt selected" id="opt-growth" onclick="selectPlan('growth')">
+          <div class="p-name">⭐ Growth</div>
+          <div class="p-price">₹8,999</div>
+          <div class="p-cycle">+ ₹2,499/mo</div>
+        </div>
+        <div class="plan-opt" id="opt-authority" onclick="selectPlan('authority')">
+          <div class="p-name">👑 Authority</div>
+          <div class="p-price">₹14,999</div>
+          <div class="p-cycle">+ ₹3,999/mo</div>
+        </div>
+      </div>
+      <div id="plan-desc" style="margin-top:16px;padding:14px;background:#F8FAFC;border-radius:10px;font-size:13px;color:var(--grey);line-height:1.6">
+        ⭐ <strong>Growth</strong> is most popular for growing businesses — includes brand-voice AI, WhatsApp + Email outreach, custom dashboard, and monthly reports.
+      </div>
+      <div style="margin-top:20px">
+        <label style="margin-bottom:8px;display:block">How did you hear about AutoGreet?</label>
+        <select id="source">
+          <option>WhatsApp / Friend referral</option>
+          <option>Instagram (@anutechaitools)</option>
+          <option>Google Search</option>
+          <option>Cold Call / Email from AutoGreet</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Continue → Setup Details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 3: Setup Details ══ -->
+  <div id="step3" class="hidden">
+    <div class="info-box">
+      ℹ️ We need a few more details to personalise your AutoGreet setup. Don't worry if you're not sure about some fields — we'll collect the rest on a short call.
+    </div>
+    <div class="card">
+      <div class="card-title">⚙️ Setup Details</div>
+      <div class="card-sub">Help us customise your WhatsApp messages and AI review responses.</div>
+      <div class="form-group">
+        <label>Approximate Customers Per Month</label>
+        <select id="custCount">
+          <option>Under 50</option>
+          <option>50 – 200</option>
+          <option selected>200 – 500</option>
+          <option>500+</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Brand Tone / Voice</label>
+        <select id="tone">
+          <option>Warm & Friendly (recommended)</option>
+          <option>Professional & Formal</option>
+          <option>Casual & Fun</option>
+          <option>Premium & Exclusive</option>
+        </select>
+        <div class="hint">This determines how your WhatsApp messages and review responses will sound</div>
+      </div>
+      <div class="form-group">
+        <label>Anything you'd like to highlight in messages? (optional)</label>
+        <textarea id="highlights" placeholder="e.g. Our homemade recipes, 10 years of experience, award-winning service, family-friendly atmosphere..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Any words or topics to AVOID in messages? (optional)</label>
+        <input type="text" id="avoid" placeholder="e.g. Competitor names, discount language, specific words..."/>
+      </div>
+      <div class="form-group">
+        <label>Do you currently use a booking or POS system?</label>
+        <select id="pos">
+          <option>No / Manual (I'll upload customer lists)</option>
+          <option>Petpooja / Restaurant POS</option>
+          <option>Square</option>
+          <option>Zoho</option>
+          <option>Google Sheets / Excel</option>
+          <option>Other (I'll share details on the call)</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="goStep(4)">Continue → Confirm & Pay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 4: Confirm & Pay ══ -->
+  <div id="step4" class="hidden">
+    <div class="card">
+      <div class="card-title">✅ Confirm Your Order</div>
+      <div class="card-sub">Review your details and proceed to payment.</div>
+      <div id="summary" style="background:#F8FAFC;border-radius:12px;padding:20px;margin-bottom:24px;font-size:14px;line-height:2;color:#374151;">
+      </div>
+      <div class="info-box">
+        🔒 Secure payment via Razorpay — UPI, Net Banking, Debit/Credit Card all accepted. Your setup begins within 24 hours of payment confirmation.
+      </div>
+      <div id="pay-btn-wrap"></div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn btn-back" onclick="goStep(3)">← Back</button>
+        <button class="btn btn-primary" onclick="submitForm()" id="submit-btn">📋 Submit & Pay Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SUCCESS ══ -->
+  <div id="step-success" class="hidden">
+    <div class="card success-card">
+      <div class="success-icon">🎉</div>
+      <h2>You're All Set!</h2>
+      <p>Thank you for choosing AutoGreet! Your onboarding details have been submitted. Here's what happens next:</p>
+      <div class="success-steps">
+        <h3>What happens next:</h3>
+        <div class="success-step"><div class="num">1</div><div>Anuragini will WhatsApp you within 2 hours to confirm your order and collect Google Business Profile access.</div></div>
+        <div class="success-step"><div class="num">2</div><div>We'll complete your full setup — WhatsApp automation, AI responder, and dashboard — within 48 hours.</div></div>
+        <div class="success-step"><div class="num">3</div><div>You'll receive a Loom video walkthrough of your live system before we hand it over.</div></div>
+        <div class="success-step"><div class="num">4</div><div>Your first Google reviews should start arriving within 72 hours of going live!</div></div>
+      </div>
+      <a href="https://wa.me/919250257509?text=Hi+Anuragini%2C+I+just+submitted+my+AutoGreet+onboarding+form!" class="wa-btn" target="_blank">
+        💬 WhatsApp Us Now
+      </a>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+let selectedPlan = 'growth';
+const payLinks = {
+  starter:   'https://rzp.io/rzp/6iO6w81b',
+  growth:    'https://rzp.io/rzp/P2lPawQv',
+  authority: 'https://rzp.io/rzp/k3e5eVs'
+};
+const planDesc = {
+  starter:   '🟢 <strong>Starter</strong> — WhatsApp review requests (200/mo), AI review responses, dashboard. Perfect for getting started.',
+  growth:    '⭐ <strong>Growth</strong> is most popular for growing businesses — includes brand-voice AI, WhatsApp + Email outreach, custom dashboard, and monthly reports.',
+  authority: '👑 <strong>Authority</strong> — multi-location support, competitor benchmarking, negative review alerts, and quarterly strategy calls.'
+};
+
+function selectPlan(plan) {
+  selectedPlan = plan;
+  ['starter','growth','authority'].forEach(p => {
+    document.getElementById('opt-'+p).classList.toggle('selected', p === plan);
+  });
+  document.getElementById('plan-desc').innerHTML = planDesc[plan];
+}
+
+function goStep(n) {
+  // Validate step 1
+  if (n === 2) {
+    if (!v('ownerName')||!v('bizName')||!v('bizType')||!v('phone')||!v('email')) {
+      alert('Please fill in all required fields (marked with *)'); return;
+    }
+    if (!document.getElementById('phone').value.match(/^\d{10}$/)) {
+      alert('Please enter a valid 10-digit phone number'); return;
+    }
+  }
+  // Build summary for step 4
+  if (n === 4) {
+    const planNames = {starter:'🟢 Starter — ₹4,999',growth:'⭐ Growth — ₹8,999 + ₹2,499/mo',authority:'👑 Authority — ₹14,999 + ₹3,999/mo'};
+    document.getElementById('summary').innerHTML = `
+      <strong>Owner:</strong> ${g('ownerName')}<br>
+      <strong>Business:</strong> ${g('bizName')} (${g('bizType')})<br>
+      <strong>City:</strong> ${g('city')}<br>
+      <strong>WhatsApp:</strong> +91 ${g('phone')}<br>
+      <strong>Email:</strong> ${g('email')}<br>
+      <strong>Plan Selected:</strong> ${planNames[selectedPlan]}<br>
+      <strong>Brand Tone:</strong> ${g('tone')}<br>
+      <strong>Customers/month:</strong> ${g('custCount')}
+    `;
+    document.getElementById('pay-btn-wrap').innerHTML = `
+      <a href="${payLinks[selectedPlan]}" target="_blank"
+         style="display:block;text-align:center;padding:16px;background:linear-gradient(135deg,#25D366,#128C7E);
+         color:white;border-radius:10px;font-weight:800;font-size:16px;text-decoration:none;
+         box-shadow:0 4px 16px rgba(37,211,102,.35);margin-bottom:8px;">
+        💳 Pay Now via Razorpay
+      </a>`;
+  }
+  // Update step UI
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step'+i);
+    if (el) el.classList.toggle('hidden', i !== n);
+    // Update dots
+    const dot = document.getElementById('dot'+i);
+    const lbl = document.getElementById('lbl'+i);
+    if (dot) {
+      dot.classList.toggle('active', i === n);
+      dot.classList.toggle('done', i < n);
+    }
+    if (lbl) lbl.classList.toggle('active', i === n);
+    if (i < 4) {
+      const line = document.getElementById('line'+i);
+      if (line) line.classList.toggle('done', i < n);
+    }
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function g(id){ return document.getElementById(id).value.trim(); }
+function v(id){ return g(id) !== ''; }
+
+function submitForm() {
+  // Build webhook payload
+  const payload = {
+    owner: g('ownerName'), business: g('bizName'), type: g('bizType'),
+    city: g('city'), address: g('address'), phone: g('phone'),
+    email: g('email'), gmaps: g('gmapsUrl'), plan: selectedPlan,
+    source: g('source'), customers: g('custCount'), tone: g('tone'),
+    highlights: g('highlights'), avoid: g('avoid'), pos: g('pos'),
+    submitted_at: new Date().toISOString(), form: 'autogreet_onboard'
+  };
+  // Fire webhook (placeholder — update with real n8n URL)
+  const webhookUrl = 'https://n8n-placeholder.autogreet.in/webhook/new-client';
+  fetch(webhookUrl, {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload),mode:'no-cors'}).catch(()=>{});
+  // Show success
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step'+i);
+    if (el) el.classList.add('hidden');
+  }
+  document.getElementById('step-success').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
