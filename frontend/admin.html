@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>AutoGreet Admin — Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230F2440'/><rect x='12' y='10' width='76' height='62' rx='14' fill='%2325D366'/><polygon points='22,72 12,88 38,72' fill='%23128C7E'/><polygon points='50,18 55,33 71,33 58,43 63,58 50,48 37,58 42,43 29,33 45,33' fill='%23F59E0B'/></svg>"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{
@@ -466,7 +467,6 @@ tbody td{padding:14px 16px;font-size:13px;color:var(--text);}
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────
-const ADMIN_PWD  = 'autogreet2026'; // Change this — or load from backend
 const PLAN_FEES  = { starter: 4999, growth: 8999, authority: 14999 };
 const PLAN_MRR   = { starter: 0,    growth: 2499, authority: 3999  };
 
@@ -507,17 +507,33 @@ const DEFAULT_CLIENTS = [
 ];
 
 // ── AUTH ─────────────────────────────────────────────────────────
-function doLogin() {
-  const pwd = document.getElementById('pwd').value;
-  if (pwd === ADMIN_PWD) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    init();
-  } else {
-    document.getElementById('login-err').style.display = 'block';
+async function doLogin() {
+  const key   = document.getElementById('pwd').value.trim();
+  const errEl = document.getElementById('login-err');
+  const btn   = document.querySelector('.login-btn');
+  if (!key) return;
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Verifying…';
+  try {
+    const res = await fetch('/api/clients', { headers: { 'x-admin-key': key } });
+    if (res.ok) {
+      sessionStorage.setItem('ag_admin_key', key);
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      init();
+    } else {
+      errEl.textContent   = 'Incorrect admin key. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = '🔐 Login';
+    }
+  } catch (e) {
+    errEl.textContent   = 'Connection error — check your internet connection.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '🔐 Login';
   }
 }
 function doLogout() {
+  sessionStorage.removeItem('ag_admin_key');
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('pwd').value = '';

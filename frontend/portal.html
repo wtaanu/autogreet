@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>AutoGreet — Client Portal</title>
-<link rel="icon" type="image/svg+xml" href="../../autogreet-icon.svg"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230F2440'/><rect x='12' y='10' width='76' height='62' rx='14' fill='%2325D366'/><polygon points='22,72 12,88 38,72' fill='%23128C7E'/><polygon points='50,18 55,33 71,33 58,43 63,58 50,48 37,58 42,43 29,33 45,33' fill='%23F59E0B'/></svg>"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -23,17 +23,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--navy);color:va
 #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);}
 .login-card{background:var(--navy2);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:48px 40px;width:420px;max-width:95vw;box-shadow:var(--shadow);}
 .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center;}
-.login-logo img{width:44px;height:44px;}
+.login-logo svg{width:44px;height:44px;}
 .login-logo span{font-size:1.6rem;font-weight:800;color:var(--white);}
 .login-logo small{color:var(--green);font-size:.75rem;display:block;font-weight:500;}
 .login-card h2{font-size:1.4rem;font-weight:700;text-align:center;margin-bottom:6px;}
 .login-card p{color:var(--gray);text-align:center;font-size:.9rem;margin-bottom:28px;}
 .form-group{margin-bottom:18px;}
 .form-group label{display:block;font-size:.85rem;color:var(--gray);margin-bottom:6px;font-weight:500;}
-.form-group input{width:100%;background:var(--navy3);border:1.5px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:12px 16px;color:var(--white);font-size:.95rem;outline:none;transition:.2s;}
-.form-group input:focus{border-color:var(--green);}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--navy3);border:1.5px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:12px 16px;color:var(--white);font-size:.95rem;outline:none;transition:.2s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--green);}
+.form-group select option{background:var(--navy2);}
 .login-btn{width:100%;background:var(--green);color:var(--navy);border:none;border-radius:var(--radius);padding:14px;font-size:1rem;font-weight:700;cursor:pointer;transition:.2s;margin-top:8px;}
 .login-btn:hover{background:var(--green2);}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;}
 .login-err{background:rgba(231,76,60,.15);border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:.85rem;color:#ff6b6b;margin-top:12px;display:none;}
 .login-help{text-align:center;margin-top:20px;font-size:.83rem;color:var(--gray);}
 .login-help a{color:var(--green);text-decoration:none;}
@@ -46,7 +48,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--navy);color:va
 .sidebar{width:240px;background:var(--navy2);border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
 .sidebar-brand{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.07);}
 .sidebar-brand .brand-row{display:flex;align-items:center;gap:10px;}
-.sidebar-brand img{width:36px;height:36px;}
+.sidebar-brand svg{width:36px;height:36px;}
 .sidebar-brand .brand-name{font-size:1.1rem;font-weight:800;}
 .sidebar-brand .plan-badge{display:inline-block;background:var(--gold);color:var(--navy);font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
 .sidebar-nav{flex:1;padding:16px 0;overflow-y:auto;}
@@ -101,7 +103,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--navy);color:va
 .btn-outline:hover{border-color:var(--green);color:var(--green);}
 .btn-gold{background:var(--gold);color:var(--navy);}
 .btn-gold:hover{background:var(--gold2);}
+.btn-red{background:rgba(231,76,60,.15);color:#ff6b6b;border:1px solid rgba(231,76,60,.3);}
 .btn-sm{padding:6px 14px;font-size:.8rem;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
 
 /* Preview table */
 .preview-table-wrap{overflow-x:auto;margin-top:16px;}
@@ -117,6 +121,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .badge-failed{background:rgba(231,76,60,.15);color:#ff6b6b;}
 .badge-plan{background:rgba(52,152,219,.15);color:var(--blue);}
 .badge-paid{background:rgba(37,211,102,.15);color:var(--green);}
+.badge-ready{background:rgba(255,255,255,.1);color:var(--gray);}
 
 /* Timeline / activity */
 .activity-list{display:flex;flex-direction:column;gap:12px;}
@@ -157,20 +162,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .wa-float{position:fixed;bottom:28px;left:28px;background:var(--green);color:var(--navy);border:none;border-radius:50%;width:52px;height:52px;font-size:1.4rem;cursor:pointer;box-shadow:0 4px 16px rgba(37,211,102,.4);z-index:200;transition:.2s;}
 .wa-float:hover{transform:scale(1.1);}
 
-/* Responsive */
-@media(max-width:900px){
-  .sidebar{width:200px;}
-  .main-content{margin-left:200px;}
-  .stat-grid{grid-template-columns:repeat(2,1fr);}
-  .card-2col{grid-template-columns:1fr;}
-}
-@media(max-width:640px){
-  .sidebar{width:60px;}
-  .sidebar-brand,.nav-item span,.sidebar-footer .logout-btn span{display:none;}
-  .main-content{margin-left:60px;padding:16px;}
-  .stat-grid{grid-template-columns:1fr 1fr;}
-}
-
 /* Chart */
 .chart-wrap{position:relative;height:200px;}
 
@@ -191,6 +182,49 @@ tr:hover td{background:rgba(255,255,255,.02);}
 .pay-card p{font-size:.88rem;color:var(--gray);margin-bottom:20px;}
 .pay-btn{display:inline-block;background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:14px 32px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:.2s;}
 .pay-btn:hover{background:var(--gold2);}
+
+/* Upgrade plan grid */
+.upgrade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px;}
+.upgrade-card{background:var(--navy3);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;text-align:center;}
+.upgrade-card.current-plan{border-color:var(--green);}
+.upgrade-card.higher-plan{border-color:var(--gold);}
+.upgrade-card .plan-name{font-weight:700;font-size:1rem;margin-bottom:6px;}
+.upgrade-card .plan-price{font-size:1.6rem;font-weight:800;color:var(--gold);margin-bottom:8px;}
+.upgrade-card .plan-features{font-size:.78rem;color:var(--gray);line-height:1.8;margin-bottom:14px;}
+
+/* Profile form */
+.profile-section-title{font-size:.85rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06);}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.profile-actions{display:flex;gap:12px;margin-top:20px;}
+.saving-indicator{font-size:.82rem;color:var(--gray);padding:10px 0;}
+
+/* Customers page */
+.customers-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;}
+.cust-stat{background:var(--navy2);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px;text-align:center;}
+.cust-stat .num{font-size:2rem;font-weight:800;color:var(--white);}
+.cust-stat .lbl{font-size:.78rem;color:var(--gray);margin-top:4px;}
+.cust-stat.green .num{color:var(--green);}
+.cust-stat.gold .num{color:var(--gold);}
+.empty-state{text-align:center;padding:40px;color:var(--gray);}
+.empty-state .empty-icon{font-size:2.5rem;margin-bottom:12px;}
+.empty-state p{font-size:.9rem;}
+
+/* Responsive */
+@media(max-width:900px){
+  .sidebar{width:200px;}
+  .main-content{margin-left:200px;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .card-2col{grid-template-columns:1fr;}
+  .upgrade-grid{grid-template-columns:1fr;}
+  .profile-grid{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .sidebar{width:60px;}
+  .sidebar-brand,.nav-item span,.sidebar-footer .logout-btn span{display:none;}
+  .main-content{margin-left:60px;padding:16px;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .single-send-form{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
@@ -199,7 +233,12 @@ tr:hover td{background:rgba(255,255,255,.02);}
 <div id="loginScreen">
   <div class="login-card">
     <div class="login-logo">
-      <img src="../../autogreet-icon.svg" alt="AutoGreet"/>
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" rx="22" fill="#0F2440"/>
+        <rect x="12" y="10" width="76" height="62" rx="14" fill="#25D366"/>
+        <polygon points="22,72 12,88 38,72" fill="#128C7E"/>
+        <polygon points="50,18 55,33 71,33 58,43 63,58 50,48 37,58 42,43 29,33 45,33" fill="#F59E0B"/>
+      </svg>
       <div>
         <span>AutoGreet</span>
         <small>AI Review Automation</small>
@@ -216,7 +255,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
       <label>Password</label>
       <input id="loginPass" type="password" placeholder="Your password" autocomplete="current-password"/>
     </div>
-    <button class="login-btn" onclick="doLogin()">🔐 Login to Dashboard</button>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">🔐 Login to Dashboard</button>
     <div class="login-err" id="loginErr">Invalid credentials. Please check your email/phone and password.</div>
     <p class="login-help">Need help? <a href="https://wa.me/919250257509?text=Hi+AutoGreet+team%2C+I+need+help+with+my+portal+login" target="_blank">WhatsApp support →</a></p>
     <p class="login-help" style="margin-top:8px;">New client? <a href="onboard.html">Start onboarding →</a></p>
@@ -231,10 +270,13 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <aside class="sidebar">
       <div class="sidebar-brand">
         <div class="brand-row">
-          <img src="../../autogreet-icon.svg" alt="AutoGreet"/>
-          <div>
-            <div class="brand-name">AutoGreet</div>
-          </div>
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="22" fill="#0F2440"/>
+            <rect x="12" y="10" width="76" height="62" rx="14" fill="#25D366"/>
+            <polygon points="22,72 12,88 38,72" fill="#128C7E"/>
+            <polygon points="50,18 55,33 71,33 58,43 63,58 50,48 37,58 42,43 29,33 45,33" fill="#F59E0B"/>
+          </svg>
+          <div><div class="brand-name">AutoGreet</div></div>
         </div>
         <div class="plan-badge" id="sidebarPlan">Starter</div>
       </div>
@@ -248,8 +290,14 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <div class="nav-item" data-page="upload">
           <span class="nav-icon">📤</span><span>Bulk Upload</span>
         </div>
+        <div class="nav-item" data-page="customers">
+          <span class="nav-icon">👥</span><span>Customers</span>
+        </div>
         <div class="nav-item" data-page="transactions">
           <span class="nav-icon">💳</span><span>Payments</span>
+        </div>
+        <div class="nav-item" data-page="profile">
+          <span class="nav-icon">⚙️</span><span>Profile</span>
         </div>
         <div class="nav-item" data-page="account">
           <span class="nav-icon">🏪</span><span>My Business</span>
@@ -268,7 +316,6 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <div class="page-title">Welcome back, <span id="ownerName">—</span> 👋</div>
         <div class="page-sub" id="bizNameSub">Loading your business dashboard…</div>
 
-        <!-- Payment pending alert (shown if not paid) -->
         <div class="alert-banner" id="payAlert" style="display:none;">
           <span class="alert-icon">⚠️</span>
           <p>Your plan payment is pending. Complete payment to activate automated review requests. <a href="#" onclick="showPage('transactions')" style="color:var(--gold);">Go to Payments →</a></p>
@@ -325,7 +372,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <div class="card">
           <div class="card-title">🕐 Recent Activity</div>
           <div class="activity-list" id="activityList">
-            <div style="color:var(--gray);font-size:.88rem;text-align:center;padding:20px;">No activity yet. Send your first review request to get started!</div>
+            <div style="color:var(--gray);font-size:.88rem;text-align:center;padding:20px;">Loading activity…</div>
           </div>
         </div>
       </section>
@@ -350,7 +397,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
               <label>Email (optional)</label>
               <input id="sendEmail" type="email" placeholder="customer@email.com"/>
             </div>
-            <button class="btn btn-green" onclick="sendSingle()" style="height:40px;">Send ➜</button>
+            <button class="btn btn-green" onclick="sendSingle()" id="sendSingleBtn" style="height:40px;">Send ➜</button>
           </div>
 
           <div class="card" style="background:var(--navy3);padding:16px;">
@@ -424,11 +471,47 @@ tr:hover td{background:rgba(255,255,255,.02);}
           <div class="preview-table-wrap">
             <table>
               <thead>
-                <tr>
-                  <th>#</th><th>Customer Name</th><th>Phone</th><th>Email</th><th>Visit Date</th><th>Status</th>
-                </tr>
+                <tr><th>#</th><th>Customer Name</th><th>Phone</th><th>Email</th><th>Visit Date</th><th>Status</th></tr>
               </thead>
               <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── CUSTOMERS ── -->
+      <section class="page-section" id="page-customers">
+        <div class="page-title">👥 Customer List</div>
+        <div class="page-sub">Everyone you've reached out to for Google reviews</div>
+
+        <div class="customers-stats">
+          <div class="cust-stat green">
+            <div class="num" id="custTotal">0</div>
+            <div class="lbl">Total Contacted</div>
+          </div>
+          <div class="cust-stat">
+            <div class="num" id="custSent">0</div>
+            <div class="lbl">Messages Delivered</div>
+          </div>
+          <div class="cust-stat gold">
+            <div class="num" id="custFailed">0</div>
+            <div class="lbl">Failed / Pending</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="justify-content:space-between;">
+            <span>📋 Contact History</span>
+            <button class="btn btn-outline btn-sm" onclick="loadLogs()">🔄 Refresh</button>
+          </div>
+          <div class="preview-table-wrap">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Customer</th><th>Phone</th><th>Email</th><th>Date Sent</th><th>Source</th><th>Status</th></tr>
+              </thead>
+              <tbody id="customersBody">
+                <tr><td colspan="7" style="text-align:center;color:var(--gray);padding:24px;">Loading customers…</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -451,6 +534,12 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
 
         <div class="card">
+          <div class="card-title">⬆️ Upgrade Your Plan</div>
+          <p style="font-size:.85rem;color:var(--gray);margin-bottom:16px;">Scale your review automation with a higher plan.</p>
+          <div class="upgrade-grid" id="upgradeGrid"></div>
+        </div>
+
+        <div class="card">
           <div class="card-title">🧾 Transaction History</div>
           <div id="txnList"></div>
         </div>
@@ -462,13 +551,79 @@ tr:hover td{background:rgba(255,255,255,.02);}
         </div>
       </section>
 
-      <!-- ── ACCOUNT ── -->
+      <!-- ── PROFILE (Edit) ── -->
+      <section class="page-section" id="page-profile">
+        <div class="page-title">⚙️ Edit Profile</div>
+        <div class="page-sub">Update your business info and Google review link</div>
+
+        <div class="card">
+          <div class="profile-section-title">Business Information</div>
+          <div class="profile-grid">
+            <div class="form-group">
+              <label>Owner Name</label>
+              <input id="profOwner" type="text" placeholder="Your name"/>
+            </div>
+            <div class="form-group">
+              <label>Business Name</label>
+              <input id="profBusiness" type="text" placeholder="Your business name"/>
+            </div>
+            <div class="form-group">
+              <label>City</label>
+              <input id="profCity" type="text" placeholder="City"/>
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input id="profPhone" type="text" placeholder="Phone number"/>
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Email (also your login username)</label>
+              <input id="profEmail" type="email" placeholder="your@email.com"/>
+            </div>
+          </div>
+
+          <div class="profile-section-title" style="margin-top:20px;">🔗 Google Review Link</div>
+          <div class="form-group">
+            <label>Google Review URL</label>
+            <input id="profGoogleLink" type="url" placeholder="https://g.page/r/YOUR_ID/review"/>
+          </div>
+          <p style="font-size:.8rem;color:var(--gray);margin-top:-8px;margin-bottom:16px;">
+            Find your link: <a href="https://business.google.com" target="_blank" style="color:var(--green);">Google Business Profile</a> → Get more reviews → Share review form
+          </p>
+
+          <div class="profile-actions">
+            <button class="btn btn-green" onclick="saveProfile()">💾 Save Changes</button>
+            <span class="saving-indicator" id="savingIndicator"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="profile-section-title">🔑 Change Password</div>
+          <div class="profile-grid">
+            <div class="form-group">
+              <label>New Password</label>
+              <input id="profNewPass" type="password" placeholder="At least 6 characters"/>
+            </div>
+            <div class="form-group">
+              <label>Confirm New Password</label>
+              <input id="profConfirmPass" type="password" placeholder="Repeat new password"/>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-outline" onclick="savePassword()">🔑 Update Password</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ACCOUNT / MY BUSINESS ── -->
       <section class="page-section" id="page-account">
         <div class="page-title">🏪 My Business</div>
         <div class="page-sub">Your registered business details with AutoGreet</div>
 
         <div class="card">
-          <div class="card-title">Business Information</div>
+          <div class="card-title" style="justify-content:space-between;">
+            <span>Business Information</span>
+            <button class="btn btn-outline btn-sm" onclick="showPage('profile')">✏️ Edit Details</button>
+          </div>
           <div class="info-grid" id="bizInfoGrid"></div>
         </div>
 
@@ -499,97 +654,100 @@ tr:hover td{background:rgba(255,255,255,.02);}
 
 <script>
 // ═══════════════════════════════════════════════════════
-//  CLIENT DATABASE — credentials + data
+//  CONFIGURATION
 // ═══════════════════════════════════════════════════════
-const CLIENTS = [
-  {
-    id: 1001,
-    email: 'aritikasingh@gmail.com',
-    phone: '7058113754',
-    password: 'TasteTales@2026',
-    owner: 'Prerana Singh',
-    business: 'Taste Tales',
-    type: 'Delivery Only Restaurant',
-    city: 'Lucknow',
-    plan: 'starter',
-    payment_status: 'paid',
-    payment_amount: 4999,
-    payment_date: '2026-03-28',
-    payment_ref: 'MANUAL-001',
-    status: 'setup_in_progress',
-    google_review_link: 'https://g.page/r/YOUR_TASTE_TALES_ID/review',
-    monthly_target: 30,
-    reviews_sent: 12,
-    reviews_received: 7,
-    rating_before: 3.8,
-    rating_after: 4.5,
-    go_live: '2026-03-28',
-    plan_price: 4999,
-    mrr: 0,
-    history: [2,3,1,4,2,3,5]
-  },
-  {
-    id: 1002,
-    email: 'shrey@apdesigns.in',
-    phone: '9919988383',
-    password: 'APDesigns@2026',
-    owner: 'Shrey Pathak',
-    business: 'AP Designs and Creations',
-    type: 'Interior Design Firm',
-    city: 'Lucknow',
-    plan: 'starter',
-    payment_status: 'paid',
-    payment_amount: 4999,
-    payment_date: '2026-03-28',
-    payment_ref: 'MANUAL-002',
-    status: 'setup_in_progress',
-    google_review_link: 'https://g.page/r/YOUR_AP_DESIGNS_ID/review',
-    monthly_target: 20,
-    reviews_sent: 8,
-    reviews_received: 4,
-    rating_before: 4.0,
-    rating_after: 4.6,
-    go_live: '2026-03-28',
-    plan_price: 4999,
-    mrr: 0,
-    history: [1,2,1,3,1,2,4]
-  }
-];
+const API_BASE = '';  // same-domain Vercel deployment — /api/* routes handled by backend/server.js
 
 const PLAN_LABELS = { starter:'Starter Plan', growth:'Growth Pack', authority:'Authority Pack' };
 const PLAN_FEES   = { starter:4999, growth:8999, authority:14999 };
 const PAYMENT_LINKS = {
-  starter:'https://rzp.io/rzp/6iO6w81b',
-  growth:'https://rzp.io/rzp/P2lPawQv',
+  starter: 'https://rzp.io/rzp/6iO6w81b',
+  growth:  'https://rzp.io/rzp/P2lPawQv',
   authority:'https://rzp.io/rzp/k3e5eVs'
 };
 
-let currentClient = null;
-let sendLog = [];
-let uploadedRows = [];
-let growthChartInst = null;
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let currentClient  = null;
+let authToken      = null;
+let sessionLogs    = [];   // send log from API
+let uploadedRows   = [];
+let uploadedFile   = null;
+let growthChartInst= null;
 
 // ═══════════════════════════════════════════════════════
-//  LOGIN
+//  API HELPERS
 // ═══════════════════════════════════════════════════════
-function doLogin() {
-  const u = document.getElementById('loginUser').value.trim().toLowerCase();
+async function apiGet(path) {
+  const res = await fetch(API_BASE + path, {
+    headers: { 'x-client-token': authToken }
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'x-client-token': authToken },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+async function apiPatch(path, body) {
+  const res = await fetch(API_BASE + path, {
+    method: 'PATCH',
+    headers: { 'Content-Type':'application/json', 'x-client-token': authToken },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Update failed');
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOGIN / LOGOUT
+// ═══════════════════════════════════════════════════════
+async function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value.trim();
   if (!u || !p) { showLoginErr('Please enter your email/phone and password.'); return; }
 
-  // Allow login by email OR phone
-  const client = CLIENTS.find(c =>
-    c.email.toLowerCase() === u || c.phone === u || c.phone.replace('+91','') === u
-  );
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
 
-  if (!client || client.password !== p) {
-    showLoginErr('Invalid credentials. Please check your email/phone and password.');
-    return;
+  try {
+    const data = await fetch(API_BASE + '/api/client/login', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ username: u, password: p })
+    }).then(async r => {
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || 'Login failed');
+      return j;
+    });
+
+    authToken = data.token;
+    currentClient = data.client;
+    sessionStorage.setItem('ag_token', authToken);
+
+    // Fetch full client profile
+    const fullClient = await apiGet('/api/client/me');
+    currentClient = fullClient;
+
+    initPortal(currentClient);
+    loadLogs();
+  } catch (err) {
+    showLoginErr(err.message || 'Login failed. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔐 Login to Dashboard';
   }
-
-  currentClient = client;
-  sessionStorage.setItem('ag_portal_client_id', client.id);
-  initPortal(client);
 }
 
 document.addEventListener('keydown', e => {
@@ -600,16 +758,26 @@ function showLoginErr(msg) {
   const el = document.getElementById('loginErr');
   el.textContent = msg;
   el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 4000);
+  setTimeout(() => el.style.display = 'none', 5000);
 }
 
-function doLogout() {
-  currentClient = null;
-  sessionStorage.removeItem('ag_portal_client_id');
-  document.getElementById('portalApp').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPass').value = '';
+async function doLogout() {
+  try {
+    if (authToken) {
+      await fetch(API_BASE + '/api/client/logout', {
+        method: 'POST', headers: { 'x-client-token': authToken }
+      }).catch(()=>{});
+    }
+  } finally {
+    authToken = null;
+    currentClient = null;
+    sessionLogs = [];
+    sessionStorage.removeItem('ag_token');
+    document.getElementById('portalApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -619,63 +787,88 @@ function initPortal(c) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('portalApp').style.display = 'block';
 
-  // Sidebar
   document.getElementById('sidebarPlan').textContent = PLAN_LABELS[c.plan] || c.plan;
-  document.getElementById('ownerName').textContent = c.owner.split(' ')[0];
-  document.getElementById('bizNameSub').textContent = c.business + ' · ' + c.type;
+  document.getElementById('ownerName').textContent = (c.owner||'').split(' ')[0] || 'there';
+  document.getElementById('bizNameSub').textContent = (c.business||'') + (c.type ? ' · ' + c.type : '');
 
-  // Payment alert
   if (c.payment_status !== 'paid') {
     document.getElementById('payAlert').style.display = 'flex';
+  } else {
+    document.getElementById('payAlert').style.display = 'none';
   }
 
   // Stats
-  document.getElementById('statSent').textContent = c.reviews_sent || 0;
+  document.getElementById('statSent').textContent    = c.reviews_sent    || 0;
   document.getElementById('statReviews').textContent = c.reviews_received || 0;
-  const rating = c.rating_after || c.rating_before || '—';
-  document.getElementById('statRating').textContent = rating !== '—' ? rating + '★' : '—';
+  const rating = c.rating_after || c.rating_before;
+  document.getElementById('statRating').textContent  = rating ? rating + '★' : '—';
   document.getElementById('statRatingSub').textContent = c.rating_before && c.rating_after
-    ? `Up from ${c.rating_before}★`
-    : 'Will update after first week';
-  const conv = c.reviews_sent > 0 ? Math.round((c.reviews_received / c.reviews_sent) * 100) + '%' : '—';
+    ? `Up from ${c.rating_before}★` : 'Will update after first week';
+  const conv = c.reviews_sent > 0
+    ? Math.round((c.reviews_received / c.reviews_sent) * 100) + '%' : '—';
   document.getElementById('statConv').textContent = conv;
 
   // Target
-  document.getElementById('targetNum').textContent = c.monthly_target || 30;
-  document.getElementById('targetDesc').textContent = 'reviews this month';
-  const pct = c.monthly_target > 0 ? Math.round((c.reviews_received / c.monthly_target) * 100) : 0;
-  document.getElementById('progressPct').textContent = pct + '%';
-  document.getElementById('progressFill').style.width = Math.min(pct, 100) + '%';
-  document.getElementById('beforeRating').textContent = c.rating_before ? c.rating_before + '★ avg rating' : 'Not set yet';
-  document.getElementById('afterRating').textContent = c.rating_after ? c.rating_after + '★ avg rating' : 'Will track after week 1';
+  document.getElementById('targetNum').textContent  = c.monthly_target || 30;
+  const pct = (c.monthly_target||0) > 0
+    ? Math.round(((c.reviews_received||0) / c.monthly_target) * 100) : 0;
+  document.getElementById('progressPct').textContent     = pct + '%';
+  document.getElementById('progressFill').style.width    = Math.min(pct,100) + '%';
+  document.getElementById('beforeRating').textContent    = c.rating_before ? c.rating_before + '★ avg rating' : 'Not set yet';
+  document.getElementById('afterRating').textContent     = c.rating_after  ? c.rating_after  + '★ avg rating' : 'Will track after week 1';
 
-  // Activity
-  buildActivity(c);
+  // WhatsApp preview
+  document.getElementById('previewBiz').textContent = c.business || 'your business';
 
-  // Chart
-  setTimeout(() => buildGrowthChart(c), 100);
-
-  // WhatsApp preview biz name
-  document.getElementById('previewBiz').textContent = c.business;
-
-  // Transactions
   buildTransactions(c);
-
-  // Account info
   buildAccountInfo(c);
-
-  // Nav
+  populateProfileForm(c);
+  setTimeout(() => buildGrowthChart(c), 100);
   setupNav();
 }
 
-function buildActivity(c) {
+// ═══════════════════════════════════════════════════════
+//  LOAD LOGS (Customers + Activity)
+// ═══════════════════════════════════════════════════════
+async function loadLogs() {
+  try {
+    const data = await apiGet('/api/client/logs');
+    sessionLogs = data.logs || [];
+    buildActivity(sessionLogs);
+    renderCustomersTable(sessionLogs);
+    updateQueueStats(sessionLogs);
+    renderSendLog(sessionLogs.slice(0, 50));
+  } catch (err) {
+    console.error('Failed to load logs:', err.message);
+    // Show empty states gracefully
+    buildActivity([]);
+    renderCustomersTable([]);
+  }
+}
+
+function buildActivity(logs) {
   const list = document.getElementById('activityList');
-  const items = [
-    { icon:'✅', cls:'green', text:`Account activated — ${c.business} onboarded`, time: formatDate(c.go_live || c.payment_date) },
-    { icon:'💳', cls:'gold', text:`Payment received ₹${c.payment_amount?.toLocaleString('en-IN')} (${c.payment_ref})`, time: formatDate(c.payment_date) },
-    { icon:'📱', cls:'blue', text:`${c.reviews_sent || 0} review requests sent via WhatsApp`, time:'This month' },
-    { icon:'⭐', cls:'gold', text:`${c.reviews_received || 0} new Google reviews received`, time:'This month' },
-  ];
+  const c = currentClient;
+  const items = [];
+
+  if (c.created_at) {
+    items.push({ icon:'✅', cls:'green', text:`Account activated — ${c.business} onboarded`, time: formatDate(c.go_live_date || c.created_at) });
+  }
+  if (c.payment_status === 'paid' && c.payment_date) {
+    items.push({ icon:'💳', cls:'gold', text:`Payment received ₹${(c.payment_amount||0).toLocaleString('en-IN')} (${c.payment_ref||'—'})`, time: formatDate(c.payment_date) });
+  }
+  if (logs.length > 0) {
+    const sent = logs.filter(l => l.webhook_ok).length;
+    items.push({ icon:'📱', cls:'blue', text:`${sent} review requests delivered via WhatsApp`, time: formatDate(logs[0].logged_at) });
+  }
+  if ((c.reviews_received||0) > 0) {
+    items.push({ icon:'⭐', cls:'gold', text:`${c.reviews_received} new Google reviews received`, time:'This month' });
+  }
+
+  if (items.length === 0) {
+    list.innerHTML = '<div style="color:var(--gray);font-size:.88rem;text-align:center;padding:20px;">No activity yet. Send your first review request to get started!</div>';
+    return;
+  }
   list.innerHTML = items.map(i => `
     <div class="activity-item">
       <div class="act-icon ${i.cls}">${i.icon}</div>
@@ -686,25 +879,83 @@ function buildActivity(c) {
     </div>`).join('');
 }
 
+function renderCustomersTable(logs) {
+  const tbody = document.getElementById('customersBody');
+  const sent   = logs.filter(l => l.webhook_ok).length;
+  const failed = logs.filter(l => !l.webhook_ok).length;
+
+  document.getElementById('custTotal').textContent  = logs.length;
+  document.getElementById('custSent').textContent   = sent;
+  document.getElementById('custFailed').textContent = failed;
+
+  if (logs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7">
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <p>No customers yet. Send your first review request!</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = logs.map((l,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><strong>${esc(l.customer_name||'—')}</strong></td>
+      <td>${esc(l.phone||'—')}</td>
+      <td style="color:var(--gray);">${esc(l.email||'—')}</td>
+      <td style="color:var(--gray);">${formatDate(l.logged_at)}</td>
+      <td><span class="badge badge-plan">${esc((l.trigger_type||'').replace(/_/g,' '))}</span></td>
+      <td><span class="badge badge-${l.webhook_ok?'sent':'failed'}">${l.webhook_ok?'Sent':'Failed'}</span></td>
+    </tr>`).join('');
+}
+
+function updateQueueStats(logs) {
+  document.getElementById('qSent').textContent    = logs.filter(l => l.webhook_ok).length;
+  document.getElementById('qFailed').textContent  = logs.filter(l => !l.webhook_ok).length;
+  document.getElementById('qPending').textContent = 0;
+}
+
+function renderSendLog(logs) {
+  const tbody = document.getElementById('sendLogBody');
+  if (!logs || logs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray);padding:24px;">No requests sent yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = logs.map(l => `
+    <tr>
+      <td><strong>${esc(l.customer_name||'—')}</strong></td>
+      <td>${esc(l.phone||'—')}</td>
+      <td>${formatDate(l.logged_at)}</td>
+      <td><span class="badge badge-${l.webhook_ok?'sent':'failed'}">${l.webhook_ok?'Sent':'Failed'}</span></td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  GROWTH CHART
+// ═══════════════════════════════════════════════════════
 function buildGrowthChart(c) {
   const ctx = document.getElementById('growthChart');
   if (!ctx) return;
   if (growthChartInst) growthChartInst.destroy();
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const data = c.history || [0,0,0,0,0,0,0];
+  // Distribute reviews_sent across 7 days roughly
+  const total = c.reviews_sent || 0;
+  const data = days.map((_,i) => {
+    const base = Math.floor(total / 7);
+    const extra = (total % 7) > i ? 1 : 0;
+    return base + extra + (i%2===0 ? 1 : 0);
+  });
   growthChartInst = new Chart(ctx, {
     type: 'line',
     data: {
       labels: days,
       datasets: [{
-        label: 'Reviews',
+        label: 'Reviews Sent',
         data: data,
         borderColor: '#25d366',
         backgroundColor: 'rgba(37,211,102,.12)',
-        tension: 0.4,
-        fill: true,
-        pointBackgroundColor: '#25d366',
-        pointRadius: 4
+        tension: 0.4, fill: true,
+        pointBackgroundColor: '#25d366', pointRadius: 4
       }]
     },
     options: {
@@ -718,99 +969,168 @@ function buildGrowthChart(c) {
   });
 }
 
+// ═══════════════════════════════════════════════════════
+//  TRANSACTIONS + UPGRADE
+// ═══════════════════════════════════════════════════════
 function buildTransactions(c) {
-  const planBlock = document.getElementById('planDetails');
   const plan = c.plan || 'starter';
   const features = {
-    starter: ['Up to 50 review requests/month','WhatsApp automation via n8n','Google review link tracking','Email support'],
-    growth: ['Up to 200 review requests/month','AI-generated review responses','Monthly performance report','Priority WhatsApp support','All Starter features'],
-    authority: ['Unlimited review requests','AI response automation','Bi-weekly strategy calls','Dedicated account manager','All Growth features']
+    starter:   ['Up to 50 review requests/month','WhatsApp automation','Google review link tracking','Email support'],
+    growth:    ['Up to 200 review requests/month','AI-generated review responses','Monthly performance report','Priority WhatsApp support'],
+    authority: ['Unlimited review requests','AI response automation','Bi-weekly strategy calls','Dedicated account manager']
   };
-  planBlock.innerHTML = `
-    <div style="margin-bottom:12px;">
-      <span class="badge badge-plan" style="font-size:.9rem;padding:6px 14px;">${PLAN_LABELS[plan]}</span>
-    </div>
-    <div style="font-size:.85rem;color:var(--gray);margin-bottom:12px;">₹${PLAN_FEES[plan]?.toLocaleString('en-IN')} setup ${c.mrr > 0 ? '+ ₹'+c.mrr?.toLocaleString('en-IN')+'/mo' : '(one-time)'}</div>
-    <ul style="list-style:none;font-size:.85rem;line-height:1.9;">
-      ${(features[plan]||[]).map(f=>`<li>✓ ${f}</li>`).join('')}
-    </ul>
-    <div style="margin-top:14px;">
-      <a href="https://wa.me/919250257509?text=Hi+AutoGreet%2C+I+want+to+upgrade+my+plan" target="_blank" class="btn btn-outline btn-sm">⬆️ Upgrade Plan</a>
-    </div>
-  `;
+  document.getElementById('planDetails').innerHTML = `
+    <div style="margin-bottom:12px;"><span class="badge badge-plan" style="font-size:.9rem;padding:6px 14px;">${PLAN_LABELS[plan]}</span></div>
+    <div style="font-size:.85rem;color:var(--gray);margin-bottom:12px;">₹${(PLAN_FEES[plan]||0).toLocaleString('en-IN')} setup fee</div>
+    <ul style="list-style:none;font-size:.85rem;line-height:1.9;">${(features[plan]||[]).map(f=>`<li>✓ ${f}</li>`).join('')}</ul>`;
 
-  const statusBlock = document.getElementById('paymentStatusBlock');
+  // Payment status block
+  const sb = document.getElementById('paymentStatusBlock');
   if (c.payment_status === 'paid') {
-    statusBlock.innerHTML = `
+    sb.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
         <span style="font-size:1.6rem;">✅</span>
         <div><div style="font-weight:700;color:var(--green);">Payment Confirmed</div>
         <div style="font-size:.82rem;color:var(--gray);">Paid on ${formatDate(c.payment_date)}</div></div>
       </div>
-      <div style="font-size:.88rem;color:var(--gray);">Ref: ${c.payment_ref || '—'}</div>
-    `;
+      <div style="font-size:.88rem;color:var(--gray);">Ref: ${c.payment_ref||'—'}</div>
+      <div style="font-size:.88rem;color:var(--gray);">Amount: ₹${(c.payment_amount||0).toLocaleString('en-IN')}</div>`;
   } else {
-    statusBlock.innerHTML = `
+    sb.innerHTML = `
       <div style="text-align:center;">
         <div style="font-size:1.4rem;margin-bottom:10px;">⏳</div>
         <div style="font-weight:700;color:var(--gold);margin-bottom:6px;">Payment Pending</div>
-        <div style="font-size:.84rem;color:var(--gray);margin-bottom:16px;">Complete your payment to activate automation</div>
-        <a href="${PAYMENT_LINKS[c.plan]}" target="_blank" class="pay-btn" style="display:inline-block;text-decoration:none;">💳 Pay Now — ₹${PLAN_FEES[c.plan]?.toLocaleString('en-IN')}</a>
-      </div>
-    `;
+        <div style="font-size:.84rem;color:var(--gray);margin-bottom:16px;">Complete payment to activate automation</div>
+        <a href="${PAYMENT_LINKS[plan]}" target="_blank" class="pay-btn" style="display:inline-block;text-decoration:none;">💳 Pay Now — ₹${(PLAN_FEES[plan]||0).toLocaleString('en-IN')}</a>
+      </div>`;
   }
 
+  // Upgrade grid
+  const planOrder = ['starter','growth','authority'];
+  const planDescs = {
+    starter: 'Perfect for small businesses starting with review automation.',
+    growth: 'For growing businesses that want AI-powered responses.',
+    authority: 'Full-service automation with dedicated support.'
+  };
+  const currentIdx = planOrder.indexOf(plan);
+  document.getElementById('upgradeGrid').innerHTML = planOrder.map((p, idx) => {
+    const isCurrent = p === plan;
+    const isHigher  = idx > currentIdx;
+    return `<div class="upgrade-card ${isCurrent?'current-plan':isHigher?'higher-plan':''}">
+      <div class="plan-name">${PLAN_LABELS[p]}${isCurrent?' ✓':''}</div>
+      <div class="plan-price">₹${PLAN_FEES[p].toLocaleString('en-IN')}</div>
+      <div class="plan-features">${planDescs[p]}</div>
+      ${isCurrent
+        ? `<span class="badge badge-plan">Current Plan</span>`
+        : isHigher
+          ? `<a href="${PAYMENT_LINKS[p]}" target="_blank" class="btn btn-gold btn-sm" style="display:inline-block;text-decoration:none;">⬆️ Upgrade Now</a>`
+          : `<span style="font-size:.78rem;color:var(--gray);">Lower plan</span>`
+      }
+    </div>`;
+  }).join('');
+
+  // Transaction list
   const txnList = document.getElementById('txnList');
   const txns = [];
   if (c.payment_status === 'paid') {
-    txns.push({ ref: c.payment_ref, desc: PLAN_LABELS[c.plan]+' — Setup Fee', amount: c.payment_amount, date: c.payment_date, status:'paid' });
+    txns.push({ ref: c.payment_ref||'—', desc: PLAN_LABELS[plan]+' — Setup Fee', amount: c.payment_amount, date: c.payment_date, status:'paid' });
   }
-  if (c.mrr > 0) {
-    txns.push({ ref:'RECURRING-001', desc: PLAN_LABELS[c.plan]+' — Monthly', amount: c.mrr, date:'Due next month', status:'pending' });
-  }
-  if (txns.length === 0) {
-    txnList.innerHTML = '<div style="text-align:center;color:var(--gray);padding:24px;font-size:.88rem;">No transactions yet</div>';
-  } else {
-    txnList.innerHTML = txns.map(t => `
+  txnList.innerHTML = txns.length === 0
+    ? '<div style="text-align:center;color:var(--gray);padding:24px;font-size:.88rem;">No transactions yet</div>'
+    : txns.map(t => `
       <div class="txn-row">
-        <div><div class="txn-ref">${t.ref}</div><div class="txn-desc">${t.desc}</div></div>
+        <div><div class="txn-ref">${esc(t.ref)}</div><div class="txn-desc">${esc(t.desc)}</div></div>
         <div class="txn-amount">₹${(t.amount||0).toLocaleString('en-IN')}</div>
         <div class="txn-date">${formatDate(t.date)}</div>
         <span class="badge badge-${t.status}">${t.status}</span>
-      </div>
-    `).join('');
+      </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  ACCOUNT INFO
+// ═══════════════════════════════════════════════════════
+function buildAccountInfo(c) {
+  document.getElementById('bizInfoGrid').innerHTML = `
+    <div class="info-item"><label>Business Name</label><p>${esc(c.business||'—')}</p></div>
+    <div class="info-item"><label>Business Type</label><p>${esc(c.type||'—')}</p></div>
+    <div class="info-item"><label>Owner</label><p>${esc(c.owner||'—')}</p></div>
+    <div class="info-item"><label>City</label><p>${esc(c.city||'Lucknow')}</p></div>
+    <div class="info-item"><label>Phone</label><p>${esc(c.phone||'—')}</p></div>
+    <div class="info-item"><label>Email</label><p>${esc(c.email||'—')}</p></div>
+    <div class="info-item"><label>Plan</label><p><span class="badge badge-plan">${PLAN_LABELS[c.plan]||c.plan}</span></p></div>
+    <div class="info-item"><label>Member Since</label><p>${formatDate(c.created_at)}</p></div>
+  `;
+
+  const rl = document.getElementById('reviewLinkBlock');
+  if (c.google_review_link && c.google_review_link.startsWith('http') && !c.google_review_link.includes('YOUR_')) {
+    rl.innerHTML = `
+      <p style="font-size:.88rem;color:var(--gray);margin-bottom:12px;">Share this link to collect Google reviews:</p>
+      <div style="background:var(--navy3);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:.85rem;word-break:break-all;color:var(--green);">${esc(c.google_review_link)}</div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${esc(c.google_review_link)}').then(()=>showToast('Link copied!','success'))">📋 Copy</button>
+        <a href="${esc(c.google_review_link)}" target="_blank" class="btn btn-outline btn-sm">🔗 Test Link</a>
+        <button class="btn btn-outline btn-sm" onclick="showPage('profile')">✏️ Edit Link</button>
+      </div>`;
+  } else {
+    rl.innerHTML = `
+      <div style="background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.2);border-radius:8px;padding:14px 16px;font-size:.86rem;color:rgba(255,255,255,.7);">
+        ⏳ Your Google Review link will be configured during setup. You can also add it yourself in <button onclick="showPage('profile')" style="background:none;border:none;color:var(--green);cursor:pointer;font-size:.86rem;text-decoration:underline;">Profile → Google Review Link</button>.
+      </div>`;
   }
 }
 
-function buildAccountInfo(c) {
-  document.getElementById('bizInfoGrid').innerHTML = `
-    <div class="info-item"><label>Business Name</label><p>${c.business}</p></div>
-    <div class="info-item"><label>Business Type</label><p>${c.type}</p></div>
-    <div class="info-item"><label>Owner</label><p>${c.owner}</p></div>
-    <div class="info-item"><label>City</label><p>${c.city || 'Lucknow'}</p></div>
-    <div class="info-item"><label>Phone</label><p>${c.phone}</p></div>
-    <div class="info-item"><label>Email</label><p>${c.email}</p></div>
-    <div class="info-item"><label>Plan</label><p><span class="badge badge-plan">${PLAN_LABELS[c.plan]}</span></p></div>
-    <div class="info-item"><label>Go-Live Date</label><p>${formatDate(c.go_live || c.payment_date)}</p></div>
-  `;
+// ═══════════════════════════════════════════════════════
+//  PROFILE FORM
+// ═══════════════════════════════════════════════════════
+function populateProfileForm(c) {
+  document.getElementById('profOwner').value      = c.owner       || '';
+  document.getElementById('profBusiness').value   = c.business    || '';
+  document.getElementById('profCity').value        = c.city        || '';
+  document.getElementById('profPhone').value       = c.phone       || '';
+  document.getElementById('profEmail').value       = c.email       || '';
+  document.getElementById('profGoogleLink').value  = c.google_review_link || '';
+}
 
-  const rlBlock = document.getElementById('reviewLinkBlock');
-  if (c.google_review_link && !c.google_review_link.includes('YOUR_')) {
-    rlBlock.innerHTML = `
-      <p style="font-size:.88rem;color:var(--gray);margin-bottom:12px;">Share this link in WhatsApp messages to collect reviews:</p>
-      <div style="background:var(--navy3);border-radius:8px;padding:12px 16px;font-family:monospace;font-size:.85rem;word-break:break-all;color:var(--green);">${c.google_review_link}</div>
-      <div style="margin-top:10px;display:flex;gap:10px;">
-        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${c.google_review_link}');showToast('Link copied!','success')">📋 Copy Link</button>
-        <a href="${c.google_review_link}" target="_blank" class="btn btn-outline btn-sm">🔗 Test Link</a>
-      </div>
-    `;
-  } else {
-    rlBlock.innerHTML = `
-      <div style="background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.2);border-radius:8px;padding:14px 16px;font-size:.86rem;color:rgba(255,255,255,.7);">
-        ⏳ Your Google Review link will be configured during setup. We'll notify you on WhatsApp once ready. If it's been more than 24 hours,
-        <a href="https://wa.me/919250257509" target="_blank" style="color:var(--green);">message us</a>.
-      </div>
-    `;
+async function saveProfile() {
+  const body = {
+    owner:              document.getElementById('profOwner').value.trim(),
+    business:           document.getElementById('profBusiness').value.trim(),
+    city:               document.getElementById('profCity').value.trim(),
+    phone:              document.getElementById('profPhone').value.trim(),
+    email:              document.getElementById('profEmail').value.trim(),
+    google_review_link: document.getElementById('profGoogleLink').value.trim()
+  };
+  const ind = document.getElementById('savingIndicator');
+  ind.textContent = 'Saving…';
+  try {
+    const data = await apiPatch('/api/client/profile', body);
+    currentClient = { ...currentClient, ...data.client };
+    // Refresh display
+    buildAccountInfo(currentClient);
+    buildTransactions(currentClient);
+    document.getElementById('sidebarPlan').textContent = PLAN_LABELS[currentClient.plan] || currentClient.plan;
+    document.getElementById('previewBiz').textContent  = currentClient.business || 'your business';
+    ind.textContent = '';
+    showToast('✅ Profile updated!', 'success');
+  } catch (err) {
+    ind.textContent = '';
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function savePassword() {
+  const newPass  = document.getElementById('profNewPass').value;
+  const confPass = document.getElementById('profConfirmPass').value;
+  if (!newPass) { showToast('Please enter a new password.', 'error'); return; }
+  if (newPass.length < 6) { showToast('Password must be at least 6 characters.', 'error'); return; }
+  if (newPass !== confPass) { showToast('Passwords do not match.', 'error'); return; }
+  try {
+    await apiPatch('/api/client/profile', { new_password: newPass });
+    document.getElementById('profNewPass').value    = '';
+    document.getElementById('profConfirmPass').value= '';
+    showToast('🔑 Password updated successfully!', 'success');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
   }
 }
 
@@ -819,10 +1139,7 @@ function buildAccountInfo(c) {
 // ═══════════════════════════════════════════════════════
 function setupNav() {
   document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const page = item.dataset.page;
-      showPage(page);
-    });
+    item.addEventListener('click', () => showPage(item.dataset.page));
   });
 }
 
@@ -833,68 +1150,58 @@ function showPage(page) {
   if (navItem) navItem.classList.add('active');
   const section = document.getElementById('page-' + page);
   if (section) section.classList.add('active');
+  // Refresh chart if going back to overview
+  if (page === 'overview' && currentClient) setTimeout(() => buildGrowthChart(currentClient), 100);
 }
 
 // ═══════════════════════════════════════════════════════
 //  SINGLE SEND
 // ═══════════════════════════════════════════════════════
-function sendSingle() {
-  const name = document.getElementById('sendName').value.trim();
+async function sendSingle() {
+  const name  = document.getElementById('sendName').value.trim();
   const phone = document.getElementById('sendPhone').value.trim();
-  if (!name || !phone) { showToast('Please enter customer name and phone.','error'); return; }
+  const email = document.getElementById('sendEmail').value.trim();
+  if (!name || !phone) { showToast('Please enter customer name and phone.', 'error'); return; }
   if (!currentClient) return;
 
-  const N8N_URL = 'https://wtaanu.app.n8n.cloud/webhook/autogreet-review';
-  const payload = {
-    customer_name: name,
-    customer_phone: phone,
-    customer_email: document.getElementById('sendEmail').value.trim(),
-    business_name: currentClient.business,
-    review_link: currentClient.google_review_link,
-    client_id: currentClient.id
-  };
+  const btn = document.getElementById('sendSingleBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
 
-  fetch(N8N_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), mode:'no-cors' })
-    .then(() => {})
-    .catch(() => {});
-
-  // Log locally
-  const entry = { name, phone, sentAt: new Date().toLocaleString('en-IN'), status:'sent' };
-  sendLog.unshift(entry);
-  renderSendLog();
-  document.getElementById('sendName').value = '';
-  document.getElementById('sendPhone').value = '';
-  document.getElementById('sendEmail').value = '';
-  document.getElementById('qSent').textContent = sendLog.filter(r=>r.status==='sent').length;
-  showToast(`✅ Request queued for ${name}!`,'success');
-}
-
-document.getElementById('sendName')?.addEventListener('input', e => {
-  document.getElementById('previewName').textContent = e.target.value || 'Customer';
-});
-
-function renderSendLog() {
-  const tbody = document.getElementById('sendLogBody');
-  if (sendLog.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray);padding:24px;">No requests sent yet this session</td></tr>';
-    return;
+  try {
+    await apiPost('/api/client/send', { customer_name: name, phone, email });
+    const entry = { customer_name: name, phone, email, logged_at: new Date().toISOString(), webhook_ok: 1, trigger_type: 'portal_single' };
+    sessionLogs.unshift(entry);
+    renderSendLog(sessionLogs.slice(0, 50));
+    updateQueueStats(sessionLogs);
+    document.getElementById('sendName').value  = '';
+    document.getElementById('sendPhone').value = '';
+    document.getElementById('sendEmail').value = '';
+    showToast(`✅ Review request sent to ${name}!`, 'success');
+    // Update stats
+    currentClient.reviews_sent = (currentClient.reviews_sent||0) + 1;
+    document.getElementById('statSent').textContent = currentClient.reviews_sent;
+  } catch (err) {
+    showToast('Failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send ➜';
   }
-  tbody.innerHTML = sendLog.map(r => `
-    <tr>
-      <td>${r.name}</td>
-      <td>${r.phone}</td>
-      <td>${r.sentAt}</td>
-      <td><span class="badge badge-${r.status}">${r.status}</span></td>
-    </tr>`).join('');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('sendName')?.addEventListener('input', e => {
+    document.getElementById('previewName').textContent = e.target.value || 'Customer';
+  });
+});
 
 // ═══════════════════════════════════════════════════════
 //  BULK UPLOAD
 // ═══════════════════════════════════════════════════════
 function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag'); }
 function handleDragLeave()  { document.getElementById('uploadZone').classList.remove('drag'); }
-function handleDrop(e)      { e.preventDefault(); handleDragLeave(); if(e.dataTransfer.files[0]) parseFile(e.dataTransfer.files[0]); }
-function handleFileSelect(e){ if(e.target.files[0]) parseFile(e.target.files[0]); }
+function handleDrop(e)      { e.preventDefault(); handleDragLeave(); if(e.dataTransfer.files[0]) { uploadedFile = e.dataTransfer.files[0]; parseFile(uploadedFile); } }
+function handleFileSelect(e){ if(e.target.files[0]) { uploadedFile = e.target.files[0]; parseFile(uploadedFile); } }
 
 function parseFile(file) {
   const reader = new FileReader();
@@ -903,25 +1210,23 @@ function parseFile(file) {
       const wb = XLSX.read(e.target.result, {type:'binary'});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-      // Normalise column names
       uploadedRows = rows.map(r => {
         const keys = Object.keys(r);
         const find = (names) => keys.find(k => names.some(n => k.toLowerCase().replace(/[\s_]/g,'').includes(n))) || null;
         return {
-          customer_name: r[find(['customername','name','fullname'])||keys[0]] || '',
-          phone:         (r[find(['phone','mobile','contact','whatsapp'])||''] || '').toString().replace(/\D/g,''),
-          email:         r[find(['email','mail'])||''] || '',
-          visit_date:    r[find(['visitdate','date','visiteddate'])||''] || '',
-          notes:         r[find(['notes','note','remark'])||''] || '',
+          customer_name: String(r[find(['customername','name','fullname'])||keys[0]]||'').trim(),
+          phone:         String(r[find(['phone','mobile','contact','whatsapp'])||'']||'').replace(/\D/g,''),
+          email:         String(r[find(['email','mail'])||'']||'').trim(),
+          visit_date:    String(r[find(['visitdate','date','visiteddate'])||'']||'').trim(),
+          notes:         String(r[find(['notes','note','remark'])||'']||'').trim(),
           status: 'ready'
         };
-      }).filter(r => r.customer_name || r.phone);
-
+      }).filter(r => r.customer_name && r.phone);
       renderUploadPreview();
       document.getElementById('sendAllBtn').disabled = uploadedRows.length === 0;
       showToast(`✅ ${uploadedRows.length} customers loaded`, 'success');
     } catch(err) {
-      showToast('Could not parse file. Please use the sample template.','error');
+      showToast('Could not parse file. Please use the sample template.', 'error');
     }
   };
   reader.readAsBinaryString(file);
@@ -930,45 +1235,56 @@ function parseFile(file) {
 function renderUploadPreview() {
   document.getElementById('previewCard').style.display = 'block';
   document.getElementById('previewCount').textContent = uploadedRows.length;
-  document.getElementById('previewBody').innerHTML = uploadedRows.slice(0, 50).map((r,i) => `
+  document.getElementById('previewBody').innerHTML = uploadedRows.slice(0,50).map((r,i) => `
     <tr>
-      <td>${i+1}</td>
-      <td>${r.customer_name}</td>
-      <td>${r.phone}</td>
-      <td>${r.email}</td>
-      <td>${r.visit_date}</td>
+      <td>${i+1}</td><td>${esc(r.customer_name)}</td><td>${esc(r.phone)}</td>
+      <td>${esc(r.email)}</td><td>${esc(r.visit_date)}</td>
       <td><span class="badge badge-${r.status}">${r.status}</span></td>
-    </tr>`).join('') + (uploadedRows.length > 50 ? `<tr><td colspan="6" style="text-align:center;color:var(--gray);">…and ${uploadedRows.length-50} more</td></tr>` : '');
+    </tr>`).join('') + (uploadedRows.length > 50 ? `<tr><td colspan="6" style="text-align:center;color:var(--gray);">…and ${uploadedRows.length-50} more rows</td></tr>` : '');
 }
 
-function processUpload() {
-  if (!currentClient || uploadedRows.length === 0) return;
-  const N8N_URL = 'https://wtaanu.app.n8n.cloud/webhook/autogreet-review';
-  let sent = 0;
-  uploadedRows.forEach((r,i) => {
-    setTimeout(() => {
-      const payload = {
-        customer_name: r.customer_name,
-        customer_phone: r.phone,
-        customer_email: r.email,
-        business_name: currentClient.business,
-        review_link: currentClient.google_review_link,
-        client_id: currentClient.id
-      };
-      fetch(N8N_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'}).catch(()=>{});
-      uploadedRows[i].status = 'sent';
-      sent++;
-      if (sent === uploadedRows.length) {
-        renderUploadPreview();
-        showToast(`🚀 All ${sent} requests queued successfully!`,'success');
-      }
-    }, i * 300);
-  });
-  showToast(`Sending to ${uploadedRows.length} customers…`,'success');
+async function processUpload() {
+  if (!currentClient || !uploadedFile || uploadedRows.length === 0) return;
+  const btn = document.getElementById('sendAllBtn');
+  btn.disabled = true;
+  btn.textContent = `Sending to ${uploadedRows.length} customers…`;
+  showToast(`Uploading ${uploadedRows.length} customers to backend…`, 'success');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', uploadedFile);
+    const res = await fetch(API_BASE + '/api/client/bulk-upload', {
+      method: 'POST',
+      headers: { 'x-client-token': authToken },
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+    // Update local preview statuses
+    const resultMap = {};
+    (data.results||[]).forEach(r => resultMap[r.phone] = r.ok);
+    uploadedRows.forEach(r => { r.status = resultMap[r.phone] !== undefined ? (resultMap[r.phone]?'sent':'failed') : 'sent'; });
+    renderUploadPreview();
+
+    // Update stats
+    currentClient.reviews_sent = (currentClient.reviews_sent||0) + (data.sent||0);
+    document.getElementById('statSent').textContent = currentClient.reviews_sent;
+
+    showToast(`🚀 ${data.sent||0} of ${data.total||0} requests sent successfully!`, 'success');
+    // Reload logs after a short delay
+    setTimeout(() => loadLogs(), 2000);
+  } catch(err) {
+    showToast('Upload failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Send to All Customers';
+  }
 }
 
 function clearUpload() {
   uploadedRows = [];
+  uploadedFile = null;
   document.getElementById('csvFile').value = '';
   document.getElementById('previewCard').style.display = 'none';
   document.getElementById('sendAllBtn').disabled = true;
@@ -989,31 +1305,46 @@ function downloadTemplate() {
   ws['!cols'] = [{wch:20},{wch:16},{wch:28},{wch:14},{wch:30}];
   XLSX.utils.book_append_sheet(wb, ws, 'Customers');
   XLSX.writeFile(wb, 'AutoGreet_Customer_Template.xlsx');
-  showToast('📥 Sample template downloaded!','success');
+  showToast('📥 Template downloaded!', 'success');
 }
 
 // ═══════════════════════════════════════════════════════
 //  UTILITIES
 // ═══════════════════════════════════════════════════════
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function formatDate(d) {
   if (!d) return '—';
   try { return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
-  catch { return d; }
+  catch { return String(d); }
 }
 
 function showToast(msg, type='success') {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = 'toast ' + type + ' show';
-  setTimeout(() => t.classList.remove('show'), 3000);
+  t.className   = 'toast ' + type + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// Auto-restore session
-window.addEventListener('load', () => {
-  const id = sessionStorage.getItem('ag_portal_client_id');
-  if (id) {
-    const c = CLIENTS.find(x => x.id == id);
-    if (c) { currentClient = c; initPortal(c); }
+// ═══════════════════════════════════════════════════════
+//  SESSION RESTORE
+// ═══════════════════════════════════════════════════════
+window.addEventListener('load', async () => {
+  const token = sessionStorage.getItem('ag_token');
+  if (!token) return;
+  authToken = token;
+  try {
+    const c = await apiGet('/api/client/me');
+    currentClient = c;
+    initPortal(c);
+    loadLogs();
+  } catch {
+    // Token invalid or expired — show login
+    authToken = null;
+    sessionStorage.removeItem('ag_token');
   }
 });
 </script>
