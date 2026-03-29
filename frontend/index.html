@@ -131,10 +131,8 @@
 <link rel="dns-prefetch" href="https://wa.me"/>
 
 <!-- ══ FAVICONS ═════════════════════════════════════════════════ -->
-<link rel="icon" type="image/svg+xml" href="../../autogreet-icon.svg"/>
-<link rel="icon" type="image/png" sizes="192x192" href="../../favicon-192.png"/>
-<link rel="icon" type="image/png" sizes="32x32"  href="../../favicon-32.png"/>
-<link rel="apple-touch-icon" href="../../favicon-192.png"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230F2440'/><rect x='12' y='10' width='76' height='62' rx='14' fill='%2325D366'/><polygon points='22,72 12,88 38,72' fill='%23128C7E'/><polygon points='50,18 55,33 71,33 58,43 63,58 50,48 37,58 42,43 29,33 45,33' fill='%23F59E0B'/></svg>"/>
+<link rel="apple-touch-icon" href="autogreet-icon.svg"/>
 <meta name="theme-color" content="#1E3A5F"/>
 <style>
 :root{
@@ -177,6 +175,9 @@ a:focus-visible,button:focus-visible{outline:3px solid #F59E0B;outline-offset:2p
 .nav-cta{background:var(--green);color:white;padding:10px 22px;border-radius:8px;
   font-weight:700;font-size:14px;text-decoration:none;transition:all .2s;}
 .nav-cta:hover{background:var(--green2);transform:translateY(-1px);}
+.nav-login{border:2px solid var(--navy);color:var(--navy);padding:9px 18px;border-radius:8px;
+  font-weight:700;font-size:14px;text-decoration:none;transition:all .2s;}
+.nav-login:hover{background:var(--navy);color:white;}
 
 /* ── HERO ── */
 .hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
@@ -311,7 +312,9 @@ footer{background:var(--navy2);color:rgba(255,255,255,.55);padding:40px 5%;text-
 
 /* ── RESPONSIVE ── */
 @media(max-width:640px){
-  .nav-links,.nav-cta{display:none;}
+  .nav-links{display:none;}
+  .nav-cta{display:none;}
+  .nav-login{font-size:12px;padding:7px 12px;}
   .plan-growth{transform:none;}
   .hero-stats{gap:24px;}
 }
@@ -343,9 +346,11 @@ footer{background:var(--navy2);color:rgba(255,255,255,.55);padding:40px 5%;text-
     <li><a href="#testimonials">Reviews</a></li>
     <li><a href="#faq">FAQ</a></li>
   </ul>
-  <a href="https://wa.me/919250257509?text=Hi%2C+I%27d+like+a+free+AutoGreet+demo!"
-     class="nav-cta" target="_blank" rel="noopener noreferrer"
-     aria-label="Book a free demo on WhatsApp (opens WhatsApp)">💬 Book Free Demo</a>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="portal.html" class="nav-login" aria-label="Existing client login">🔑 Client Login</a>
+    <button onclick="openDemoModal()" class="nav-cta"
+       aria-label="Book a free demo">💬 Book Free Demo</button>
+  </div>
 </nav>
 
 <!-- HERO -->
@@ -355,9 +360,8 @@ footer{background:var(--navy2);color:rgba(255,255,255,.55);padding:40px 5%;text-
   <h1 id="hero-heading">Your Business Deserves<br><span class="accent">More 5-Star Reviews</span></h1>
   <p class="hero-sub">AutoGreet automatically sends personalised WhatsApp review requests after every customer visit — and responds to every Google review with AI. 24/7.</p>
   <div class="hero-btns">
-    <a href="https://wa.me/919250257509?text=Hi%2C+I%27d+like+a+free+AutoGreet+demo!"
-       class="btn-hero-primary" target="_blank" rel="noopener noreferrer"
-       aria-label="Book a free 15-minute demo on WhatsApp">💬 Book Free 15-Min Demo</a>
+    <button onclick="openDemoModal()" class="btn-hero-primary"
+       aria-label="Book a free 15-minute demo">💬 Book Free 15-Min Demo</button>
     <a href="onboard.html" class="btn-hero-outline" aria-label="Start AutoGreet onboarding">🚀 Get Started Today</a>
   </div>
   <div class="hero-stats" role="list" aria-label="Key statistics">
@@ -521,7 +525,7 @@ footer{background:var(--navy2);color:rgba(255,255,255,.55);padding:40px 5%;text-
   <h2>Ready to Get More 5-Star Reviews?</h2>
   <p>Book a free 15-minute demo call. We'll show you your review gap vs. competitors — and exactly what AutoGreet will do for your business.</p>
   <div class="cta-buttons">
-    <a href="https://wa.me/919250257509?text=Hi%2C+I%27d+like+a+free+AutoGreet+demo!" class="btn-wa" target="_blank">💬 WhatsApp Us Now</a>
+    <button onclick="openDemoModal()" class="btn-wa">💬 Book Free Demo</button>
     <a href="onboard.html" class="btn-demo">📋 Start Onboarding</a>
   </div>
   <div style="margin-top:28px;font-size:14px;color:rgba(255,255,255,.45)">
@@ -582,6 +586,200 @@ footer{background:var(--navy2);color:rgba(255,255,255,.55);padding:40px 5%;text-
     <br/><small style="opacity:.6;font-size:11px;">WCAG 2.1 AA Compliant · Privacy friendly</small>
   </div>
 </footer>
+
+<!-- ══ BOOK A DEMO MODAL ══════════════════════════════════════ -->
+<div id="demoModal" role="dialog" aria-modal="true" aria-labelledby="demoModalTitle"
+     style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);
+            padding:16px;overflow-y:auto;backdrop-filter:blur(4px);"
+     onclick="if(event.target===this)closeDemoModal()">
+  <div style="background:#fff;border-radius:16px;max-width:480px;margin:40px auto;padding:36px 32px;
+              position:relative;box-shadow:0 24px 80px rgba(0,0,0,.25);">
+    <button onclick="closeDemoModal()" aria-label="Close"
+      style="position:absolute;top:16px;right:18px;background:none;border:none;
+             font-size:22px;cursor:pointer;color:#888;line-height:1;">✕</button>
+
+    <div style="font-size:28px;margin-bottom:6px;">📞</div>
+    <h2 id="demoModalTitle" style="color:#1a1a2e;font-size:22px;margin:0 0 6px;">Book Your Free Demo</h2>
+    <p style="color:#666;font-size:14px;margin:0 0 24px;">
+      We'll call you within 2 hours to show you exactly how AutoGreet can work for your business.
+    </p>
+
+    <form id="demoForm" onsubmit="submitDemoForm(event)" novalidate>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px;">
+          Your Name <span style="color:#e74c3c">*</span>
+        </label>
+        <input id="demoName" type="text" placeholder="e.g. Rahul Sharma" required
+          style="width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:8px;
+                 font-size:15px;box-sizing:border-box;outline:none;transition:border .2s;"
+          onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px;">
+          Business Name <span style="color:#e74c3c">*</span>
+        </label>
+        <input id="demoBusiness" type="text" placeholder="e.g. Sharma Restaurant" required
+          style="width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:8px;
+                 font-size:15px;box-sizing:border-box;outline:none;transition:border .2s;"
+          onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px;">
+          Location <span style="color:#e74c3c">*</span>
+        </label>
+        <input id="demoLocation" type="text" placeholder="e.g. Hazratganj, Lucknow" required
+          style="width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:8px;
+                 font-size:15px;box-sizing:border-box;outline:none;transition:border .2s;"
+          onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px;">
+            Email
+          </label>
+          <input id="demoEmail" type="email" placeholder="you@example.com"
+            style="width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:8px;
+                   font-size:14px;box-sizing:border-box;outline:none;transition:border .2s;"
+            onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:6px;">
+            Mobile
+          </label>
+          <input id="demoPhone" type="tel" placeholder="9876543210"
+            style="width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:8px;
+                   font-size:14px;box-sizing:border-box;outline:none;transition:border .2s;"
+            onfocus="this.style.borderColor='#4CAF50'" onblur="this.style.borderColor='#ddd'"/>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#999;margin:0 0 20px;">
+        ℹ️ At least one of Email or Mobile is required.
+      </p>
+
+      <div id="demoError" style="display:none;background:#fff0f0;color:#c0392b;
+           border:1px solid #f5c6c6;border-radius:8px;padding:10px 14px;
+           font-size:13px;margin-bottom:16px;"></div>
+
+      <button type="submit" id="demoSubmitBtn"
+        style="width:100%;background:linear-gradient(135deg,#4CAF50,#2e7d32);color:#fff;
+               border:none;padding:14px;border-radius:10px;font-size:16px;font-weight:700;
+               cursor:pointer;transition:opacity .2s;">
+        📞 Book My Free Demo
+      </button>
+    </form>
+
+    <div id="demoSuccess" style="display:none;text-align:center;padding:20px 0;">
+      <div style="font-size:52px;margin-bottom:12px;">🎉</div>
+      <h3 style="color:#2e7d32;margin:0 0 8px;">Request Received!</h3>
+      <p style="color:#555;font-size:14px;margin:0;">
+        We'll reach out within 2 hours to confirm your demo time.<br/>
+        Check your email/WhatsApp for details.
+      </p>
+      <button onclick="closeDemoModal()"
+        style="margin-top:20px;background:#4CAF50;color:#fff;border:none;
+               padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Modal responsive fix */
+@media(max-width:500px){
+  #demoModal > div { padding:28px 20px; margin:20px auto; }
+  #demoModal .demo-grid { grid-template-columns:1fr !important; }
+}
+/* Make nav-cta button look identical to anchor */
+.nav-cta { cursor:pointer; }
+/* Make hero primary button match anchor styles */
+.btn-hero-primary { cursor:pointer; }
+/* Make btn-wa button match anchor styles */
+.btn-wa { cursor:pointer; }
+</style>
+
+<script>
+/* ── Demo Modal ─────────────────────────────── */
+const DEMO_API = 'https://api.autogreet.in';
+
+function openDemoModal() {
+  document.getElementById('demoModal').style.display = 'block';
+  document.getElementById('demoForm').style.display  = 'block';
+  document.getElementById('demoSuccess').style.display = 'none';
+  document.getElementById('demoError').style.display   = 'none';
+  document.getElementById('demoForm').reset();
+  document.body.style.overflow = 'hidden';
+  document.getElementById('demoName').focus();
+}
+
+function closeDemoModal() {
+  document.getElementById('demoModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDemoModal();
+});
+
+async function submitDemoForm(e) {
+  e.preventDefault();
+  const errEl  = document.getElementById('demoError');
+  const btn    = document.getElementById('demoSubmitBtn');
+  errEl.style.display = 'none';
+
+  const name     = document.getElementById('demoName').value.trim();
+  const business = document.getElementById('demoBusiness').value.trim();
+  const location = document.getElementById('demoLocation').value.trim();
+  const email    = document.getElementById('demoEmail').value.trim();
+  const phone    = document.getElementById('demoPhone').value.trim();
+
+  // Validation
+  if (!name)     { showDemoError('Please enter your name.'); return; }
+  if (!business) { showDemoError('Please enter your business name.'); return; }
+  if (!location) { showDemoError('Please enter your location.'); return; }
+  if (!email && !phone) {
+    showDemoError('Please provide at least your email OR mobile number so we can reach you.'); return;
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showDemoError('Please enter a valid email address.'); return;
+  }
+  if (phone && !/^\+?[\d\s\-]{8,15}$/.test(phone)) {
+    showDemoError('Please enter a valid mobile number.'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const res  = await fetch(DEMO_API + '/api/demo-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, business_name: business, location, email, phone })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+
+    // Show success state
+    document.getElementById('demoForm').style.display    = 'none';
+    document.getElementById('demoSuccess').style.display = 'block';
+  } catch(err) {
+    showDemoError(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📞 Book My Free Demo';
+  }
+}
+
+function showDemoError(msg) {
+  const el = document.getElementById('demoError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+/* ── End Demo Modal ─────────────────────────── */
+</script>
 
 <script>
 /* FAQ accordion — WCAG keyboard accessible */

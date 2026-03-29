@@ -208,6 +208,7 @@ tbody td{padding:14px 16px;font-size:13px;color:var(--text);}
     <div class="nav-item" onclick="showPage('clients')"><span class="icon">👥</span> Clients</div>
     <div class="nav-item" onclick="showPage('revenue')"><span class="icon">💰</span> Revenue</div>
     <div class="nav-item" onclick="showPage('onboard')"><span class="icon">➕</span> Onboard Client</div>
+    <div class="nav-item" onclick="showPage('demoleads')"><span class="icon">📋</span> Demo Leads</div>
     <div class="nav-section">Tools</div>
     <div class="nav-item" onclick="window.open('demo.html')"><span class="icon">📱</span> Demo App</div>
     <div class="nav-item" onclick="window.open('index.html')"><span class="icon">🌐</span> Website</div>
@@ -447,6 +448,60 @@ tbody td{padding:14px 16px;font-size:13px;color:var(--text);}
       </div>
     </div>
 
+    <!-- ══ DEMO LEADS PAGE ══ -->
+    <div class="page" id="page-demoleads">
+      <!-- Summary badges -->
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:22px">
+        <div class="stat-card stat-blue">
+          <div class="stat-label">Total Leads</div>
+          <div class="stat-val" id="dl-total">0</div>
+          <div class="stat-sub">All enquiries</div>
+          <div class="stat-icon">📋</div>
+        </div>
+        <div class="stat-card stat-gold">
+          <div class="stat-label">Demo Pending</div>
+          <div class="stat-val" id="dl-pending">0</div>
+          <div class="stat-sub">Yet to demo</div>
+          <div class="stat-icon">⏳</div>
+        </div>
+        <div class="stat-card stat-green">
+          <div class="stat-label">Demo Given</div>
+          <div class="stat-val" id="dl-given">0</div>
+          <div class="stat-sub">Awaiting close</div>
+          <div class="stat-icon">✅</div>
+        </div>
+        <div class="stat-card stat-purple">
+          <div class="stat-label">Onboarded</div>
+          <div class="stat-val" id="dl-onboarded">0</div>
+          <div class="stat-sub">Converted to client</div>
+          <div class="stat-icon">🎉</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Demo Lead Pipeline</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-input form-select" id="dl-filter" style="padding:7px 32px 7px 12px;font-size:13px;width:auto" onchange="renderDemoLeads()">
+            <option value="">All Status</option>
+            <option value="demo_pending">Demo Pending</option>
+            <option value="demo_given">Demo Given</option>
+            <option value="not_interested">Not Interested</option>
+            <option value="client_onboarded">Client Onboarded</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="loadDemoLeads()">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Business</th><th>Location</th>
+            <th>Contact</th><th>Status</th><th>Received</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="dl-table"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /layout -->
 
@@ -507,6 +562,8 @@ const DEFAULT_CLIENTS = [
 ];
 
 // ── AUTH ─────────────────────────────────────────────────────────
+const API = 'https://api.autogreet.in';
+
 async function doLogin() {
   const key   = document.getElementById('pwd').value.trim();
   const errEl = document.getElementById('login-err');
@@ -515,9 +572,9 @@ async function doLogin() {
   errEl.style.display = 'none';
   btn.disabled = true; btn.textContent = 'Verifying…';
   try {
-    const res = await fetch('/api/clients', { headers: { 'x-admin-key': key } });
+    const res = await fetch(API + '/api/clients', { headers: { 'x-admin-key': key } });
     if (res.ok) {
-      sessionStorage.setItem('ag_admin_key', key);
+      localStorage.setItem('ag_admin_key', key);
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
       init();
@@ -533,7 +590,7 @@ async function doLogin() {
   }
 }
 function doLogout() {
-  sessionStorage.removeItem('ag_admin_key');
+  localStorage.removeItem('ag_admin_key');
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
   document.getElementById('pwd').value = '';
@@ -541,17 +598,64 @@ function doLogout() {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
-function init() {
-  // Load from localStorage or use defaults
-  const saved = localStorage.getItem('ag_clients');
-  clients = saved ? JSON.parse(saved) : DEFAULT_CLIENTS;
-  if (!saved) saveClients();
+function adminKey() { return localStorage.getItem('ag_admin_key') || ''; }
+
+async function init() {
   document.getElementById('live-date').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
   document.getElementById('f-paydate').value = new Date().toISOString().split('T')[0];
-  renderAll();
+  await loadClientsFromAPI();
   buildCharts();
 }
 
+async function loadClientsFromAPI() {
+  try {
+    const res = await fetch(API + '/api/clients', { headers: { 'x-admin-key': adminKey() } });
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    // Normalise: backend rows use snake_case
+    clients = (data || []).map(normaliseClient);
+    // Merge with DEFAULT_CLIENTS that are not yet in DB (fallback for offline/fresh deploy)
+    if (!clients.length) clients = DEFAULT_CLIENTS;
+  } catch(e) {
+    // Offline fallback — use localStorage cache or defaults
+    const saved = localStorage.getItem('ag_clients');
+    clients = saved ? JSON.parse(saved) : DEFAULT_CLIENTS;
+  }
+  localStorage.setItem('ag_clients', JSON.stringify(clients)); // cache
+  renderAll();
+}
+
+function normaliseClient(row) {
+  return {
+    id:                   row.id,
+    owner:                row.owner_name || row.owner || '',
+    business:             row.business_name || row.business || '',
+    type:                 row.business_type || row.type || '',
+    city:                 row.city || 'Lucknow',
+    email:                row.email || '',
+    phone:                row.phone || '',
+    plan:                 row.plan || 'starter',
+    plan_label:           { starter:'🟢 Starter', growth:'⭐ Growth', authority:'👑 Authority' }[row.plan] || row.plan,
+    status:               row.status || 'new',
+    payment_status:       row.payment_status || 'pending',
+    payment_amount:       Number(row.payment_amount) || 0,
+    payment_date:         (row.payment_date||'').split('T')[0],
+    payment_ref:          row.payment_ref || '',
+    reviews_before:       Number(row.reviews_before) || 0,
+    reviews_after:        Number(row.reviews_after) || 0,
+    target_reviews:       Number(row.target_reviews) || 30,
+    google_rating_before: Number(row.google_rating_before) || 0,
+    google_rating_after:  Number(row.google_rating_after) || 0,
+    review_link:          row.review_link || '',
+    gmaps_url:            row.gmaps_url || '',
+    notes:                row.notes || '',
+    setup_date:           (row.setup_date || row.created_at || '').split('T')[0],
+    go_live_date:         (row.go_live_date || '').split('T')[0],
+    created_at:           row.created_at || ''
+  };
+}
+
+// Legacy local save (used as cache only)
 function saveClients() {
   localStorage.setItem('ag_clients', JSON.stringify(clients));
 }
@@ -559,7 +663,8 @@ function saveClients() {
 // ── NAVIGATION ────────────────────────────────────────────────────
 const pageTitles = {
   overview: '📊 Overview', clients: '👥 All Clients',
-  revenue: '💰 Revenue', onboard: '➕ Onboard New Client'
+  revenue: '💰 Revenue', onboard: '➕ Onboard New Client',
+  demoleads: '📋 Demo Leads'
 };
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -569,6 +674,7 @@ function showPage(name) {
     if (n.textContent.includes(pageTitles[name]?.slice(2))) n.classList.add('active');
   });
   document.getElementById('page-title').textContent = pageTitles[name] || name;
+  if (name === 'demoleads') { loadDemoLeads(); return; }
   renderAll();
 }
 
@@ -682,10 +788,16 @@ function sendWA(id) {
   const msg = encodeURIComponent(`Hi ${c.owner}! This is Anuragini from AutoGreet. I'm reaching out regarding your ${c.plan} setup for ${c.business}. 🚀`);
   window.open(`https://wa.me/91${c.phone}?text=${msg}`,'_blank');
 }
-function deleteClient(id) {
-  if (!confirm('Delete this client?')) return;
+async function deleteClient(id) {
+  if (!confirm('Delete this client? This cannot be undone.')) return;
   clients = clients.filter(c => c.id !== id);
   saveClients(); renderAll();
+  try {
+    await fetch(API + '/api/clients/' + id, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': adminKey() }
+    });
+  } catch(e) { /* silent */ }
 }
 
 // ── DETAIL MODAL ───────────────────────────────────────────────────
@@ -721,50 +833,70 @@ function openDetail(id) {
   document.getElementById('detail-modal').classList.add('open');
 }
 function closeModal() { document.getElementById('detail-modal').classList.remove('open'); }
-function saveClientEdits() {
+async function saveClientEdits() {
   const idx = clients.findIndex(c => c.id === editingId);
   if (idx === -1) return;
-  clients[idx].status              = document.getElementById('e-status').value;
-  clients[idx].reviews_after       = parseInt(document.getElementById('e-reviews').value)||0;
-  clients[idx].google_rating_before = parseFloat(document.getElementById('e-rating-b').value)||0;
-  clients[idx].google_rating_after  = parseFloat(document.getElementById('e-rating-a').value)||0;
-  clients[idx].review_link         = document.getElementById('e-review-link').value;
-  clients[idx].go_live_date        = document.getElementById('e-golive').value;
-  clients[idx].notes               = document.getElementById('e-notes').value;
+  const updates = {
+    status:               document.getElementById('e-status').value,
+    reviews_after:        parseInt(document.getElementById('e-reviews').value)||0,
+    google_rating_before: parseFloat(document.getElementById('e-rating-b').value)||0,
+    google_rating_after:  parseFloat(document.getElementById('e-rating-a').value)||0,
+    review_link:          document.getElementById('e-review-link').value,
+    go_live_date:         document.getElementById('e-golive').value,
+    notes:                document.getElementById('e-notes').value
+  };
+  // Optimistic update
+  Object.assign(clients[idx], updates);
   saveClients(); renderAll(); closeModal();
+  // Persist to backend
+  try {
+    await fetch(API + '/api/clients/' + editingId, {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', 'x-admin-key': adminKey() },
+      body: JSON.stringify(updates)
+    });
+  } catch(e) { /* silent — local cache already updated */ }
 }
 
 // ── ADD CLIENT ─────────────────────────────────────────────────────
-function addClient() {
+async function addClient() {
   const owner = document.getElementById('f-owner').value.trim();
   const biz   = document.getElementById('f-biz').value.trim();
   const phone = document.getElementById('f-phone').value.trim();
   if (!owner||!biz||!phone) { showMsg('Please fill Owner Name, Business Name and Phone.','var(--red)'); return; }
-  const plan  = document.getElementById('f-plan').value;
-  const pmap  = { starter:'🟢 Starter', growth:'⭐ Growth', authority:'👑 Authority' };
-  const client = {
-    id: Date.now(), owner, business: biz,
-    type:  document.getElementById('f-type').value,
-    city:  document.getElementById('f-city').value,
-    email: document.getElementById('f-email').value,
-    phone, plan, plan_label: pmap[plan],
-    status: 'new',
-    payment_status: document.getElementById('f-payment').value,
-    payment_amount: PLAN_FEES[plan],
-    payment_date:   document.getElementById('f-paydate').value,
-    payment_ref:    document.getElementById('f-payref').value,
-    gmaps_url: document.getElementById('f-gmaps').value,
-    review_link: document.getElementById('f-review-link').value,
-    reviews_before:0, reviews_after:0, target_reviews:30,
-    google_rating_before:0, google_rating_after:0,
-    notes: document.getElementById('f-notes').value,
-    setup_date: new Date().toISOString().split('T')[0],
-    created_at: new Date().toISOString()
+  const plan         = document.getElementById('f-plan').value;
+  const payment_status = document.getElementById('f-payment').value;
+  const payload = {
+    owner_name:      owner,
+    business_name:   biz,
+    business_type:   document.getElementById('f-type').value,
+    city:            document.getElementById('f-city').value,
+    email:           document.getElementById('f-email').value,
+    phone,
+    plan,
+    payment_status,
+    payment_amount:  PLAN_FEES[plan],
+    payment_date:    document.getElementById('f-paydate').value,
+    payment_ref:     document.getElementById('f-payref').value,
+    gmaps_url:       document.getElementById('f-gmaps').value,
+    review_link:     document.getElementById('f-review-link').value,
+    notes:           document.getElementById('f-notes').value
   };
-  clients.unshift(client);
-  saveClients(); renderAll();
-  clearForm();
-  showMsg('✅ Client added successfully! Switch to Clients tab to view.','var(--green)');
+  showMsg('Saving…','var(--muted)');
+  try {
+    const res  = await fetch(API + '/api/onboard', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-admin-key': adminKey() },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    showMsg('✅ Client added! Refreshing…','var(--green)');
+    clearForm();
+    await loadClientsFromAPI();
+  } catch(e) {
+    showMsg('❌ Error: ' + e.message, 'var(--red)');
+  }
 }
 function clearForm() {
   ['f-owner','f-biz','f-city','f-email','f-phone','f-payref','f-gmaps','f-review-link','f-notes']
@@ -839,6 +971,106 @@ function exportRevCSV() {
   const csv = rows.map(r=>r.join(',')).join('\n');
   const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
   a.download = 'autogreet-revenue.csv'; a.click();
+}
+
+// ── AUTO-LOGIN (persistent localStorage session) ────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const saved = localStorage.getItem('ag_admin_key');
+  if (saved) {
+    try {
+      const res = await fetch(API + '/api/clients', { headers: { 'x-admin-key': saved } });
+      if (res.ok) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        init();
+        return;
+      }
+    } catch(e) {}
+    localStorage.removeItem('ag_admin_key');
+  }
+});
+
+// ── DEMO LEADS ────────────────────────────────────────────────────
+let demoLeads = [];
+
+async function loadDemoLeads() {
+  document.getElementById('dl-table').innerHTML =
+    '<tr><td colspan="8" class="empty" style="padding:24px"><div class="empty-icon">⏳</div>Loading…</td></tr>';
+  try {
+    const res  = await fetch(API + '/api/demo-leads', { headers: { 'x-admin-key': adminKey() } });
+    const data = await res.json();
+    demoLeads  = data.leads || [];
+    // Update summary counts
+    const summary = data.summary || {};
+    document.getElementById('dl-total').textContent     = demoLeads.length;
+    document.getElementById('dl-pending').textContent   = summary.demo_pending    || demoLeads.filter(l=>l.status==='demo_pending').length;
+    document.getElementById('dl-given').textContent     = summary.demo_given      || demoLeads.filter(l=>l.status==='demo_given').length;
+    document.getElementById('dl-onboarded').textContent = summary.client_onboarded|| demoLeads.filter(l=>l.status==='client_onboarded').length;
+    renderDemoLeads();
+  } catch(e) {
+    document.getElementById('dl-table').innerHTML =
+      '<tr><td colspan="8" class="empty"><div class="empty-icon">⚠️</div>Error loading leads. Check API connection.</td></tr>';
+  }
+}
+
+function renderDemoLeads() {
+  const filter = document.getElementById('dl-filter')?.value || '';
+  const list   = filter ? demoLeads.filter(l => l.status === filter) : demoLeads;
+  const tbody  = document.getElementById('dl-table');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty"><div class="empty-icon">📭</div>No leads found.</td></tr>';
+    return;
+  }
+  const statusLabel = { demo_pending:'⏳ Pending', demo_given:'✅ Demo Given', not_interested:'❌ Not Interested', client_onboarded:'🎉 Onboarded' };
+  const statusBadge = { demo_pending:'badge-pending', demo_given:'badge-active', not_interested:'badge-new', client_onboarded:'badge-completed' };
+  tbody.innerHTML = list.map((l,i) => `
+    <tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td><div class="client-name">${escHtml(l.name||'')}</div></td>
+      <td><div style="font-size:13px">${escHtml(l.business_name||'')}</div></td>
+      <td style="font-size:12px;color:var(--muted)">${escHtml(l.location||'')}</td>
+      <td style="font-size:12px">
+        ${l.email ? `<div>📧 ${escHtml(l.email)}</div>` : ''}
+        ${l.phone ? `<div>📱 ${escHtml(l.phone)}</div>` : ''}
+      </td>
+      <td>
+        <select class="form-input form-select" style="padding:5px 28px 5px 8px;font-size:12px;border-radius:6px"
+          onchange="updateLeadStatus(${l.id}, this.value)">
+          ${['demo_pending','demo_given','not_interested','client_onboarded'].map(s =>
+            `<option value="${s}" ${l.status===s?'selected':''}>${statusLabel[s]||s}</option>`
+          ).join('')}
+        </select>
+      </td>
+      <td style="font-size:12px;color:var(--muted)">${l.created_at ? new Date(l.created_at).toLocaleDateString('en-IN') : '—'}</td>
+      <td>
+        <div class="action-row">
+          ${l.phone ? `<button class="act-btn" onclick="window.open('https://wa.me/91${l.phone.replace(/\D/g,'')}','_blank')">💬 WA</button>` : ''}
+          ${l.email ? `<button class="act-btn" onclick="window.open('mailto:${escHtml(l.email)}')">📧 Mail</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+async function updateLeadStatus(id, status) {
+  try {
+    await fetch(API + '/api/demo-leads/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', 'x-admin-key': adminKey() },
+      body: JSON.stringify({ status })
+    });
+    const lead = demoLeads.find(l => l.id === id);
+    if (lead) {
+      lead.status = status;
+      // Update summary counts
+      document.getElementById('dl-pending').textContent   = demoLeads.filter(l=>l.status==='demo_pending').length;
+      document.getElementById('dl-given').textContent     = demoLeads.filter(l=>l.status==='demo_given').length;
+      document.getElementById('dl-onboarded').textContent = demoLeads.filter(l=>l.status==='client_onboarded').length;
+    }
+  } catch(e) { alert('Failed to update status. Please try again.'); }
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>

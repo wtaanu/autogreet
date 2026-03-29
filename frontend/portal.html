@@ -4,9 +4,32 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>AutoGreet — Client Portal</title>
+<!-- ══ SECURITY HEADERS (DAST / SAST) ══════════════════════════════════ -->
+<!-- Content-Security-Policy: restrict sources, block inline eval, no framing -->
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'self' https://api.autogreet.in;
+           script-src 'self' https://cdnjs.cloudflare.com;
+           style-src 'self' 'unsafe-inline';
+           img-src 'self' data: https:;
+           font-src 'self' data:;
+           connect-src 'self' https://api.autogreet.in;
+           frame-ancestors 'none';
+           base-uri 'self';
+           form-action 'self';
+           object-src 'none'"/>
+<!-- Prevent clickjacking -->
+<meta http-equiv="X-Frame-Options" content="DENY"/>
+<!-- Prevent MIME sniffing -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff"/>
+<!-- Referrer privacy -->
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230F2440'/><rect x='12' y='10' width='76' height='62' rx='14' fill='%2325D366'/><polygon points='22,72 12,88 38,72' fill='%23128C7E'/><polygon points='50,18 55,33 71,33 58,43 63,58 50,48 37,58 42,43 29,33 45,33' fill='%23F59E0B'/></svg>"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- CDN scripts with Subresource Integrity (SRI) — prevents CDN supply-chain attacks -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"
+        integrity="sha512-z4PhNX7vuL3xVChQ1m2AB9Yg5AULVxXcg/SpIdNs6c5H0NE8XYXysP+DGNKHfuwvY7kxvUdBeoGlODJ6+SfaPg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
 :root{
   --navy:#0d1b2a;--navy2:#1a2d42;--navy3:#243651;
@@ -225,6 +248,18 @@ tr:hover td{background:rgba(255,255,255,.02);}
   .stat-grid{grid-template-columns:1fr 1fr;}
   .single-send-form{grid-template-columns:1fr;}
 }
+@media(max-width:480px){
+  #loginScreen .login-card{padding:32px 20px;}
+  .main-content{margin-left:60px;padding:12px;}
+  .stat-grid{grid-template-columns:1fr;}
+  .page-title{font-size:1.3rem;}
+}
+
+/* ── Login tabs (Login / Sign Up) ── */
+.auth-tabs{display:flex;border-bottom:1.5px solid rgba(255,255,255,.1);margin-bottom:24px;gap:0;}
+.auth-tab{flex:1;padding:10px;text-align:center;font-size:.9rem;font-weight:600;color:var(--gray);
+  cursor:pointer;border-bottom:2px solid transparent;transition:.2s;margin-bottom:-1.5px;}
+.auth-tab.active{color:var(--green);border-bottom-color:var(--green);}
 </style>
 </head>
 <body>
@@ -244,21 +279,77 @@ tr:hover td{background:rgba(255,255,255,.02);}
         <small>AI Review Automation</small>
       </div>
     </div>
-    <h2>Client Portal Login</h2>
-    <p>Access your review automation dashboard</p>
+    <h2 id="authTitle">Client Portal</h2>
+    <p id="authSub">Access your review automation dashboard</p>
 
-    <div class="form-group">
-      <label>Email / Phone</label>
-      <input id="loginUser" type="text" placeholder="you@email.com or phone number" autocomplete="username"/>
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Login</div>
+      <div class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">New Account</div>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input id="loginPass" type="password" placeholder="Your password" autocomplete="current-password"/>
+
+    <!-- LOGIN PANEL -->
+    <div id="loginPanel">
+      <div class="form-group">
+        <label>Email / Phone</label>
+        <input id="loginUser" type="text" placeholder="you@email.com or phone number" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="loginPass" type="password" placeholder="Your password" autocomplete="current-password"/>
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">🔐 Login to Dashboard</button>
+      <div class="login-err" id="loginErr">Invalid credentials. Please check your email/phone and password.</div>
+      <p class="login-help">Need help? <a href="https://wa.me/919250257509?text=Hi+AutoGreet+team%2C+I+need+help+with+my+portal+login" target="_blank">WhatsApp support →</a></p>
     </div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">🔐 Login to Dashboard</button>
-    <div class="login-err" id="loginErr">Invalid credentials. Please check your email/phone and password.</div>
-    <p class="login-help">Need help? <a href="https://wa.me/919250257509?text=Hi+AutoGreet+team%2C+I+need+help+with+my+portal+login" target="_blank">WhatsApp support →</a></p>
-    <p class="login-help" style="margin-top:8px;">New client? <a href="onboard.html">Start onboarding →</a></p>
+
+    <!-- SIGNUP PANEL -->
+    <div id="signupPanel" style="display:none;">
+      <div class="form-group">
+        <label>Owner Name *</label>
+        <input id="suName" type="text" placeholder="Your full name" autocomplete="name"/>
+      </div>
+      <div class="form-group">
+        <label>Business Name *</label>
+        <input id="suBiz" type="text" placeholder="e.g. Sharma Restaurant"/>
+      </div>
+      <div class="form-group">
+        <label>Email *</label>
+        <input id="suEmail" type="email" placeholder="you@email.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label>Mobile *</label>
+        <input id="suPhone" type="tel" placeholder="9876543210" autocomplete="tel"/>
+      </div>
+      <div class="form-group">
+        <label>Password *</label>
+        <input id="suPass" type="password" placeholder="Choose a strong password" autocomplete="new-password"/>
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input id="suCity" type="text" placeholder="Lucknow" value="Lucknow"/>
+      </div>
+      <div class="form-group">
+        <label>Business Type</label>
+        <select id="suType">
+          <option>Restaurant / Café</option>
+          <option>Salon / Spa</option>
+          <option>Clinic / Doctor</option>
+          <option>Gym / Fitness Studio</option>
+          <option>Retail Shop</option>
+          <option>Hotel / Guest House</option>
+          <option>Coaching / Tuition</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <button class="login-btn" id="signupBtn" onclick="doSignup()">🚀 Create My Account</button>
+      <div class="login-err" id="signupErr"></div>
+      <div id="signupSuccess" style="display:none;background:rgba(37,211,102,.12);border:1px solid var(--green);border-radius:8px;padding:14px;margin-top:12px;font-size:.88rem;color:var(--green);text-align:center;">
+        ✅ Account created! Check your email for your login details.<br/>
+        <span style="color:var(--gray);font-size:.82rem">You can now login with your email and chosen password.</span>
+      </div>
+      <p class="login-help" style="margin-top:12px;">Already have an account? <a href="#" onclick="switchAuthTab('login');return false;">Login →</a></p>
+    </div>
   </div>
 </div>
 
@@ -656,7 +747,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
 // ═══════════════════════════════════════════════════════
 //  CONFIGURATION
 // ═══════════════════════════════════════════════════════
-const API_BASE = '';  // same-domain Vercel deployment — /api/* routes handled by backend/server.js
+const API_BASE = 'https://api.autogreet.in';  // Railway backend via api.autogreet.in CNAME
 
 const PLAN_LABELS = { starter:'Starter Plan', growth:'Growth Pack', authority:'Authority Pack' };
 const PLAN_FEES   = { starter:4999, growth:8999, authority:14999 };
@@ -734,7 +825,7 @@ async function doLogin() {
 
     authToken = data.token;
     currentClient = data.client;
-    sessionStorage.setItem('ag_token', authToken);
+    localStorage.setItem('ag_token', authToken);
 
     // Fetch full client profile
     const fullClient = await apiGet('/api/client/me');
@@ -772,7 +863,7 @@ async function doLogout() {
     authToken = null;
     currentClient = null;
     sessionLogs = [];
-    sessionStorage.removeItem('ag_token');
+    localStorage.removeItem('ag_token');
     document.getElementById('portalApp').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('loginUser').value = '';
@@ -852,17 +943,17 @@ function buildActivity(logs) {
   const items = [];
 
   if (c.created_at) {
-    items.push({ icon:'✅', cls:'green', text:`Account activated — ${c.business} onboarded`, time: formatDate(c.go_live_date || c.created_at) });
+    items.push({ icon:'✅', cls:'green', text:`Account activated — ${esc(c.business||'')} onboarded`, time: formatDate(c.go_live_date || c.created_at) });
   }
   if (c.payment_status === 'paid' && c.payment_date) {
-    items.push({ icon:'💳', cls:'gold', text:`Payment received ₹${(c.payment_amount||0).toLocaleString('en-IN')} (${c.payment_ref||'—'})`, time: formatDate(c.payment_date) });
+    items.push({ icon:'💳', cls:'gold', text:`Payment received ₹${Number(c.payment_amount||0).toLocaleString('en-IN')} (${esc(c.payment_ref||'—')})`, time: formatDate(c.payment_date) });
   }
   if (logs.length > 0) {
     const sent = logs.filter(l => l.webhook_ok).length;
-    items.push({ icon:'📱', cls:'blue', text:`${sent} review requests delivered via WhatsApp`, time: formatDate(logs[0].logged_at) });
+    items.push({ icon:'📱', cls:'blue', text:`${Number(sent)} review requests delivered via WhatsApp`, time: formatDate(logs[0].logged_at) });
   }
   if ((c.reviews_received||0) > 0) {
-    items.push({ icon:'⭐', cls:'gold', text:`${c.reviews_received} new Google reviews received`, time:'This month' });
+    items.push({ icon:'⭐', cls:'gold', text:`${Number(c.reviews_received)} new Google reviews received`, time:'This month' });
   }
 
   if (items.length === 0) {
@@ -993,15 +1084,15 @@ function buildTransactions(c) {
         <div><div style="font-weight:700;color:var(--green);">Payment Confirmed</div>
         <div style="font-size:.82rem;color:var(--gray);">Paid on ${formatDate(c.payment_date)}</div></div>
       </div>
-      <div style="font-size:.88rem;color:var(--gray);">Ref: ${c.payment_ref||'—'}</div>
-      <div style="font-size:.88rem;color:var(--gray);">Amount: ₹${(c.payment_amount||0).toLocaleString('en-IN')}</div>`;
+      <div style="font-size:.88rem;color:var(--gray);">Ref: ${esc(c.payment_ref||'—')}</div>
+      <div style="font-size:.88rem;color:var(--gray);">Amount: ₹${Number(c.payment_amount||0).toLocaleString('en-IN')}</div>`;
   } else {
     sb.innerHTML = `
       <div style="text-align:center;">
         <div style="font-size:1.4rem;margin-bottom:10px;">⏳</div>
         <div style="font-weight:700;color:var(--gold);margin-bottom:6px;">Payment Pending</div>
         <div style="font-size:.84rem;color:var(--gray);margin-bottom:16px;">Complete payment to activate automation</div>
-        <a href="${PAYMENT_LINKS[plan]}" target="_blank" class="pay-btn" style="display:inline-block;text-decoration:none;">💳 Pay Now — ₹${(PLAN_FEES[plan]||0).toLocaleString('en-IN')}</a>
+        <a href="${PAYMENT_LINKS[plan] || '#'}" target="_blank" rel="noopener noreferrer" class="pay-btn" style="display:inline-block;text-decoration:none;">💳 Pay Now — ₹${Number(PLAN_FEES[plan]||0).toLocaleString('en-IN')}</a>
       </div>`;
   }
 
@@ -1333,7 +1424,7 @@ function showToast(msg, type='success') {
 //  SESSION RESTORE
 // ═══════════════════════════════════════════════════════
 window.addEventListener('load', async () => {
-  const token = sessionStorage.getItem('ag_token');
+  const token = localStorage.getItem('ag_token');
   if (!token) return;
   authToken = token;
   try {
@@ -1344,9 +1435,87 @@ window.addEventListener('load', async () => {
   } catch {
     // Token invalid or expired — show login
     authToken = null;
-    sessionStorage.removeItem('ag_token');
+    localStorage.removeItem('ag_token');
   }
 });
+
+// ═══════════════════════════════════════════════════════
+//  AUTH TABS + SIGNUP
+// ═══════════════════════════════════════════════════════
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('loginPanel').style.display  = isLogin ? 'block' : 'none';
+  document.getElementById('signupPanel').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('tabLogin').classList.toggle('active', isLogin);
+  document.getElementById('tabSignup').classList.toggle('active', !isLogin);
+  document.getElementById('authTitle').textContent = isLogin ? 'Client Portal' : 'Create Account';
+  document.getElementById('authSub').textContent   = isLogin
+    ? 'Access your review automation dashboard'
+    : 'Set up your AutoGreet client account';
+  if (isLogin) document.getElementById('loginErr').style.display = 'none';
+  else { document.getElementById('signupErr').style.display = 'none'; document.getElementById('signupSuccess').style.display = 'none'; }
+}
+
+async function doSignup() {
+  const btn   = document.getElementById('signupBtn');
+  const errEl = document.getElementById('signupErr');
+  errEl.style.display = 'none';
+
+  const name  = document.getElementById('suName').value.trim();
+  const biz   = document.getElementById('suBiz').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const phone = document.getElementById('suPhone').value.trim();
+  const pass  = document.getElementById('suPass').value;
+  const city  = document.getElementById('suCity').value.trim() || 'Lucknow';
+  const type  = document.getElementById('suType').value;
+
+  if (!name)  { showSignupErr('Please enter your name.'); return; }
+  if (!biz)   { showSignupErr('Please enter your business name.'); return; }
+  if (!email) { showSignupErr('Please enter your email.'); return; }
+  if (!phone) { showSignupErr('Please enter your mobile number.'); return; }
+  if (!pass || pass.length < 6) { showSignupErr('Password must be at least 6 characters.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account…';
+
+  try {
+    const res  = await fetch(API_BASE + '/api/client/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner: name, business: biz, email, phone, password: pass, city, type })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Signup failed. Please try again.');
+
+    document.getElementById('signupSuccess').style.display = 'block';
+    btn.style.display = 'none';
+    // Auto-login with the new token if returned
+    if (data.token) {
+      authToken = data.token;
+      localStorage.setItem('ag_token', authToken);
+      setTimeout(async () => {
+        try {
+          const c = await apiGet('/api/client/me');
+          initPortal(c);
+          loadLogs();
+        } catch(e) { switchAuthTab('login'); }
+      }, 1800);
+    }
+  } catch(err) {
+    showSignupErr(err.message);
+  } finally {
+    if (btn.style.display !== 'none') {
+      btn.disabled = false;
+      btn.textContent = '🚀 Create My Account';
+    }
+  }
+}
+
+function showSignupErr(msg) {
+  const el = document.getElementById('signupErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
 </script>
 </body>
 </html>
