@@ -263,8 +263,9 @@ async function triggerN8n(payload) {
     return { ok: false, error: 'N8N_WEBHOOK_URL not set' };
   }
   try {
-    await axios.post(url, payload, { timeout: 10000 });
-    return { ok: true };
+    const response = await axios.post(url, payload, { timeout: 10000 });
+    const sid = response.data?.message_sid || response.data?.sid || null;
+    return { ok: true, sid };
   } catch (err) {
     console.error('n8n webhook error:', err.message);
     return { ok: false, error: err.message };
@@ -432,8 +433,21 @@ app.post('/api/client/send', requireClient, async (req, res) => {
     const client = clients[0];
     if (client.payment_status !== 'paid') return res.status(403).json({ error: 'Payment required to send requests' });
 
+    // ── Dedup: block re-send to same phone within 24 hours ──────
+    const cleanPhone = phone.replace(/\D/g, '');
+    const [recent] = await pool.query(
+      `SELECT id FROM send_log
+       WHERE client_id = ? AND phone = ?
+         AND logged_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+       LIMIT 1`,
+      [req.clientId, cleanPhone]
+    );
+    if (recent.length) {
+      return res.status(409).json({ success: false, error: `A review request was already sent to ${phone} in the last 24 hours.` });
+    }
+
     const payload = {
-      customer_name, phone, email: email||'',
+      customer_name, phone: cleanPhone, email: email||'',
       business_name: client.business,
       review_link: client.google_review_link || '',
       client_id: req.clientId,
@@ -441,16 +455,17 @@ app.post('/api/client/send', requireClient, async (req, res) => {
       timestamp: new Date().toISOString()
     };
     const result = await triggerN8n(payload);
-  if (!result.ok) {
-    return res.status(500).json({ success: false, error: result.error || 'n8n webhook failed for client' });
-  }
+    if (!result.ok) {
+      return res.status(500).json({ success: false, error: result.error || 'WhatsApp delivery failed — please try again.' });
+    }
+
     await pool.query(
       'INSERT INTO send_log (client_id, customer_name, phone, email, business, review_link, message_sid, webhook_ok, trigger_type) VALUES (?,?,?,?,?,?,?,?,?)',
-      [req.clientId, customer_name, phone, email||'', client.business, client.google_review_link||'', result.sid||null, result.ok?1:0, 'portal_single']
+      [req.clientId, customer_name, cleanPhone, email||'', client.business, client.google_review_link||'', result.sid||null, 1, 'portal_single']
     );
     await pool.query('UPDATE clients SET reviews_sent = reviews_sent + 1 WHERE id = ?', [req.clientId]);
 
-    if (result.ok) res.json({ success: true, message: 'Review request started' });
+    res.json({ success: true, message: 'Review request sent', sid: result.sid });
     
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
@@ -485,26 +500,46 @@ app.post('/api/client/bulk-upload', requireClient, upload.single('file'), async 
     const customers = rows.map(normalise).filter(c => c.customer_name && c.phone);
     if (!customers.length) return res.status(400).json({ error: 'No valid rows found. Check column headers match template.' });
 
+    // Fetch phones already sent in last 24h to skip duplicates
+    const phonesInBatch = customers.map(c => c.phone.replace(/\D/g, '')).filter(Boolean);
+    const [recentLogs] = phonesInBatch.length
+      ? await pool.query(
+          `SELECT phone FROM send_log
+           WHERE client_id = ? AND phone IN (?) AND logged_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+          [req.clientId, phonesInBatch]
+        )
+      : [[]];
+    const alreadySentPhones = new Set(recentLogs.map(r => r.phone));
+
     const results = [];
+    let successCount = 0;
     for (const c of customers) {
+      const cleanPhone = c.phone.replace(/\D/g, '');
+      if (alreadySentPhones.has(cleanPhone)) {
+        results.push({ name: c.customer_name, phone: cleanPhone, ok: false, skipped: true, reason: 'sent in last 24h' });
+        continue;
+      }
       const payload = {
-        customer_name: c.customer_name, phone: c.phone, email: c.email,
+        customer_name: c.customer_name, phone: cleanPhone, email: c.email,
         business_name: client.business, review_link: client.google_review_link||'',
         client_id: req.clientId, trigger: 'client_portal_bulk'
       };
       const r = await triggerN8n(payload);
       if (r.ok) {
-      await pool.query(
-        'INSERT INTO send_log (client_id, customer_name, phone, email, business, review_link, webhook_ok, trigger_type) VALUES (?,?,?,?,?,?,?,?)',
-        [req.clientId, c.customer_name, c.phone, c.email, client.business, client.google_review_link||'', r.ok?1:0, 'portal_bulk']
-      );
-      results.push({ name: c.customer_name, phone: c.phone, ok: r.ok });
-      await new Promise(resolve => setTimeout(resolve, 250)); // throttle
+        await pool.query(
+          'INSERT INTO send_log (client_id, customer_name, phone, email, business, review_link, message_sid, webhook_ok, trigger_type) VALUES (?,?,?,?,?,?,?,?,?)',
+          [req.clientId, c.customer_name, cleanPhone, c.email, client.business, client.google_review_link||'', r.sid||null, 1, 'portal_bulk']
+        );
+        alreadySentPhones.add(cleanPhone); // prevent duplicate within same batch
+        successCount++;
+      }
+      results.push({ name: c.customer_name, phone: cleanPhone, ok: r.ok });
+      await new Promise(resolve => setTimeout(resolve, 300)); // throttle
     }
-  }
-    await pool.query('UPDATE clients SET reviews_sent = reviews_sent + ? WHERE id = ?', [customers.length, req.clientId]);
+    await pool.query('UPDATE clients SET reviews_sent = reviews_sent + ? WHERE id = ?', [successCount, req.clientId]);
 
-    res.json({ success: true, total: customers.length, sent: results.filter(r=>r.ok).length, results });
+    const skipped = results.filter(r => r.skipped).length;
+    res.json({ success: true, total: customers.length, sent: successCount, skipped, results });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -1155,11 +1190,4 @@ app.listen(PORT, async () => {
     } catch (e) {
       console.log(`   MySQL DB:     ❌ ${e.message}`);
       console.log(`   → Ensure DB_HOST is the Hostinger external hostname (e.g. srv1234.hstgr.io)`);
-      console.log(`   → Enable Remote MySQL in hPanel → Databases → Remote MySQL → add %`);
-    }
-  }, 2000);
-
-  console.log(`\n   Health check: http://localhost:${PORT}/api/health\n`);
-});
-
-module.exports = app;
+      console.log(`   → Enable Remote MySQL in hPanel → Databases
