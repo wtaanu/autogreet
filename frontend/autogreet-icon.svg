@@ -1,0 +1,20 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nb" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A5F"/>
+      <stop offset="100%" stop-color="#0F2440"/>
+    </linearGradient>
+    <linearGradient id="ng" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#25D366"/>
+      <stop offset="100%" stop-color="#128C7E"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect width="100" height="100" rx="22" fill="url(#nb)"/>
+  <!-- Chat bubble (WhatsApp green) -->
+  <rect x="12" y="10" width="76" height="62" rx="14" fill="url(#ng)"/>
+  <!-- Chat tail -->
+  <polygon points="22,72 12,88 38,72" fill="#128C7E"/>
+  <!-- Star (gold) -->
+  <polygon points="50,18 55,33 71,33 58,43 63,58 50,48 37,58 42,43 29,33 45,33" fill="#F59E0B"/>
+</svg>

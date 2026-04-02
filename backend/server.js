@@ -441,15 +441,17 @@ app.post('/api/client/send', requireClient, async (req, res) => {
       timestamp: new Date().toISOString()
     };
     const result = await triggerN8n(payload);
-
+  if (!result.ok) {
+    return res.status(500).json({ success: false, error: result.error || 'n8n webhook failed for client' });
+  }
     await pool.query(
       'INSERT INTO send_log (client_id, customer_name, phone, email, business, review_link, message_sid, webhook_ok, trigger_type) VALUES (?,?,?,?,?,?,?,?,?)',
       [req.clientId, customer_name, phone, email||'', client.business, client.google_review_link||'', result.sid||null, result.ok?1:0, 'portal_single']
     );
     await pool.query('UPDATE clients SET reviews_sent = reviews_sent + 1 WHERE id = ?', [req.clientId]);
 
-    if (result.ok) res.json({ success: true, message: 'Review request queued' });
-    else res.status(500).json({ success: false, error: result.error });
+    if (result.ok) res.json({ success: true, message: 'Review request started' });
+    
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -491,6 +493,7 @@ app.post('/api/client/bulk-upload', requireClient, upload.single('file'), async 
         client_id: req.clientId, trigger: 'client_portal_bulk'
       };
       const r = await triggerN8n(payload);
+      if (r.ok) {
       await pool.query(
         'INSERT INTO send_log (client_id, customer_name, phone, email, business, review_link, webhook_ok, trigger_type) VALUES (?,?,?,?,?,?,?,?)',
         [req.clientId, c.customer_name, c.phone, c.email, client.business, client.google_review_link||'', r.ok?1:0, 'portal_bulk']
@@ -498,6 +501,7 @@ app.post('/api/client/bulk-upload', requireClient, upload.single('file'), async 
       results.push({ name: c.customer_name, phone: c.phone, ok: r.ok });
       await new Promise(resolve => setTimeout(resolve, 250)); // throttle
     }
+  }
     await pool.query('UPDATE clients SET reviews_sent = reviews_sent + ? WHERE id = ?', [customers.length, req.clientId]);
 
     res.json({ success: true, total: customers.length, sent: results.filter(r=>r.ok).length, results });
@@ -520,7 +524,9 @@ app.post('/api/send-request', async (req, res) => {
     timestamp: new Date().toISOString()
   };
   const result = await triggerN8n(payload);
-
+ if (!result.ok) {
+    return res.status(500).json({ success: false, error: result.error || 'n8n webhook failed for review' });
+  }
   try {
     const pool = await getDB();
     await pool.query(
@@ -530,7 +536,7 @@ app.post('/api/send-request', async (req, res) => {
   } catch {}
 
   if (result.ok) res.json({ success: true, message: 'Review request queued', payload });
-  else res.status(500).json({ success: false, error: result.error });
+  
 });
 
 // ── PUBLIC: CLIENT ONBOARDING ─────────────────────────────────
