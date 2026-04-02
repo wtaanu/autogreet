@@ -1195,4 +1195,7 @@ app.listen(PORT, async () => {
     } catch (e) {
       console.log(`   MySQL DB:     ❌ ${e.message}`);
       console.log(`   → Ensure DB_HOST is the Hostinger external hostname (e.g. srv1234.hstgr.io)`);
-      console.log(`   → Enable Remote MySQL in hPanel → Databases
+      console.log(`   → Enable Remote MySQL in hPanel → Databases → Remote MySQL`);
+    }
+  }, 3000);
+});
