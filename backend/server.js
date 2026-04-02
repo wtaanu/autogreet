@@ -138,26 +138,31 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5500',
   'http://127.0.0.1:5500',
 ];
-app.use(cors({
+const corsOptions = {
   origin(origin, cb) {
     // Allow server-to-server (no Origin) or listed origins
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(new Error('CORS: Origin not allowed — ' + origin));
   },
-  methods: ['GET','POST','PATCH','DELETE'],
-  allowedHeaders: ['Content-Type','x-admin-key','x-client-token'],
+  methods: ['GET','POST','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','x-admin-key','x-client-token','Authorization'],
+  exposedHeaders: ['Content-Type'],
   credentials: false,
-}));
+  maxAge: 86400,          // cache preflight for 24h — reduces repeated OPTIONS calls
+};
+// Handle ALL preflight OPTIONS requests first, before any other middleware
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
-// ── Security headers (DAST: X-Frame-Options, HSTS, nosniff, CSP) ─
+// ── Security headers ────────────────────────────────────────
 app.use((req, res, next) => {
+  // Skip heavy headers on OPTIONS preflight — they are not needed and can
+  // cause some proxies to mishandle the response
+  if (req.method === 'OPTIONS') return next();
   res.setHeader('X-Content-Type-Options',  'nosniff');
   res.setHeader('X-Frame-Options',         'DENY');
   res.setHeader('X-XSS-Protection',        '1; mode=block');
   res.setHeader('Referrer-Policy',         'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy',      'geolocation=(), microphone=(), camera=()');
-  res.setHeader('Content-Security-Policy',
-    "default-src 'none'; frame-ancestors 'none'");
   // HSTS — only over HTTPS (Railway always TLS)
   if (req.headers['x-forwarded-proto'] === 'https') {
     res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
